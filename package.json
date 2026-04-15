@@ -1,12 +1,8 @@
 {
   "name": "esmodtree",
-  "version": "1.0.0",
-  "description": "Import tree visualizer for the command line",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "private": true,
+  "description": "ES Module import tree visualizer",
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",

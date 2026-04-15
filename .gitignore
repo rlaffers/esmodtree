@@ -1,0 +1,4 @@
+node_modules/
+*.sw?
+.opencode/package.json
+.opencode/package-lock.json
