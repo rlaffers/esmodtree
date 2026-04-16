@@ -35,6 +35,12 @@ pnpm --filter @esmodtree/cli test       # vitest run
 - **Path alias**: `~/` maps to `src/` inside `packages/cli` (configured in both `tsconfig.json` paths and Vite `resolve.alias`).
 - **Build externals**: all bare imports and `node:` builtins are external. The `cli.js` entry gets a shebang automatically.
 
+## Typescript Conventions
+
+- prefer types over interfaces
+- avoid use `any`
+- avoid type assertions
+
 ## Architecture
 
 - `packages/cli/src/cli.ts` -- CLI entry point (bin)
