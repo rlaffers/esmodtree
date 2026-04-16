@@ -14,11 +14,13 @@ describe('traverseDown', () => {
     expect(tree).toEqual({
       path: 'a.ts',
       circular: false,
+      markers: [],
       children: [
         {
           path: 'b.ts',
           circular: false,
-          children: [{ path: 'c.ts', circular: false, children: [] }],
+          markers: [],
+          children: [{ path: 'c.ts', circular: false, markers: [], children: [] }],
         },
       ],
     })

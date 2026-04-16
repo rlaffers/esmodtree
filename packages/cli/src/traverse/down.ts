@@ -1,11 +1,20 @@
-import type { TreeNode } from '~/graph/types'
+import type { ModuleMarker, TreeNode } from '~/graph/types'
 
-export function traverseDown(startFile: string, forward: Map<string, string[]>): TreeNode {
+export type TraverseOptions = {
+  markers?: Map<string, ModuleMarker[]>
+}
+
+export function traverseDown(
+  startFile: string,
+  forward: Map<string, string[]>,
+  options: TraverseOptions = {},
+): TreeNode {
+  const { markers = new Map() } = options
   const visited = new Set<string>()
 
   function walk(file: string): TreeNode {
     if (visited.has(file)) {
-      return { path: file, circular: true, children: [] }
+      return { path: file, circular: true, markers: [], children: [] }
     }
 
     visited.add(file)
@@ -13,7 +22,7 @@ export function traverseDown(startFile: string, forward: Map<string, string[]>):
     const children = deps.map(dep => walk(dep))
     visited.delete(file)
 
-    return { path: file, circular: false, children }
+    return { path: file, circular: false, markers: markers.get(file) ?? [], children }
   }
 
   return walk(startFile)

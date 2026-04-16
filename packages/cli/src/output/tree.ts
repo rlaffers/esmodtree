@@ -1,12 +1,38 @@
+import pc from 'picocolors'
 import type { TreeNode } from '~/graph/types'
 
-export function formatTree(node: TreeNode): string {
+type ColorFn = (s: string) => string
+
+export type FormatTreeOptions = {
+  color?: boolean
+}
+
+const MARKER_COLORS: Record<string, ColorFn> = {
+  page: pc.magenta,
+  layout: pc.blue,
+  entry: pc.green,
+  circular: pc.yellow,
+}
+
+function identity(s: string): string {
+  return s
+}
+
+function getColorFn(tag: string, color: boolean): ColorFn {
+  if (!color) return identity
+  return MARKER_COLORS[tag] ?? identity
+}
+
+export function formatTree(node: TreeNode, options: FormatTreeOptions = {}): string {
+  const { color = false } = options
   const lines: string[] = []
 
   function walk(n: TreeNode, prefix: string, isLast: boolean, isRoot: boolean) {
     const connector = isRoot ? '' : isLast ? '└── ' : '├── '
-    const label = n.circular ? `${n.path} [circular]` : n.path
-    lines.push(`${prefix}${connector}${label}`)
+    const markerTags = n.markers.map(m => getColorFn(m, color)(`[${m}]`))
+    if (n.circular) markerTags.push(getColorFn('circular', color)('[circular]'))
+    const suffix = markerTags.length > 0 ? ` ${markerTags.join(' ')}` : ''
+    lines.push(`${prefix}${connector}${n.path}${suffix}`)
 
     const childPrefix = isRoot ? '' : prefix + (isLast ? '    ' : '│   ')
     n.children.forEach((child, i) => {

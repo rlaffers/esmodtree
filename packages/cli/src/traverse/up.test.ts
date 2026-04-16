@@ -14,11 +14,13 @@ describe('traverseUp', () => {
     expect(tree).toEqual({
       path: 'c.ts',
       circular: false,
+      markers: [],
       children: [
         {
           path: 'b.ts',
           circular: false,
-          children: [{ path: 'a.ts', circular: false, children: [] }],
+          markers: [],
+          children: [{ path: 'a.ts', circular: false, markers: [], children: [] }],
         },
       ],
     })
@@ -58,6 +60,6 @@ describe('traverseUp', () => {
 
     const tree = traverseUp('a.ts', reverse)
 
-    expect(tree).toEqual({ path: 'a.ts', circular: false, children: [] })
+    expect(tree).toEqual({ path: 'a.ts', circular: false, markers: [], children: [] })
   })
 })

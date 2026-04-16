@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs'
 import { relative } from 'node:path'
 import { Command } from 'commander'
-import { detectSourceDirs } from '~/detect/project'
+import { detectProjectType, detectSourceDirs } from '~/detect/project'
+import { detectRootMarkers } from '~/detect/roots'
 import { buildGraph } from '~/graph/build'
 import { transformGraph } from '~/graph/transform'
 import { VERSION } from '~/index'
@@ -16,21 +17,27 @@ program.name('esmodtree').description('ES module import tree visualizer').versio
 program
   .option('--down <file>', 'show dependency tree (what this file imports)')
   .option('--up <file>', 'show importer tree (what imports this file)')
+  .option('--no-color', 'disable colored output')
   .action(async options => {
     const down = options.down as string | undefined
     const up = options.up as string | undefined
+    const useColor = options.color as boolean
 
     if (!down && !up) {
       program.help()
       return
     }
 
+    const projectType = detectProjectType(file => existsSync(file))
+
     if (down) {
       const targetFile = relative(process.cwd(), down)
       const cruiseResult = await buildGraph([targetFile])
       const { adjacencyMaps } = transformGraph(cruiseResult)
-      const tree = traverseDown(targetFile, adjacencyMaps.forward)
-      console.log(formatTree(tree))
+      const modulePaths = [...adjacencyMaps.forward.keys()]
+      const markers = detectRootMarkers(projectType, modulePaths)
+      const tree = traverseDown(targetFile, adjacencyMaps.forward, { markers })
+      console.log(formatTree(tree, { color: useColor }))
     }
 
     if (up) {
@@ -45,8 +52,10 @@ program
 
       const cruiseResult = await buildGraph(sourceDirs)
       const { adjacencyMaps } = transformGraph(cruiseResult)
-      const tree = traverseUp(targetFile, adjacencyMaps.reverse)
-      console.log(formatTree(tree))
+      const modulePaths = [...adjacencyMaps.forward.keys()]
+      const markers = detectRootMarkers(projectType, modulePaths)
+      const tree = traverseUp(targetFile, adjacencyMaps.reverse, { markers })
+      console.log(formatTree(tree, { color: useColor }))
     }
   })
 
