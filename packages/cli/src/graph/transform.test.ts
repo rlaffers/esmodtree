@@ -98,4 +98,22 @@ describe('transformGraph', () => {
     expect(result.adjacencyMaps.forward.get('a.ts')).toEqual(['b.ts'])
     expect(result.adjacencyMaps.forward.has('node_modules/lodash/index.js')).toBe(false)
   })
+
+  it('deduplicates edges when multiple dependency types exist for the same target', () => {
+    const cruise = makeCruiseResult([
+      {
+        source: 'index.ts',
+        deps: [
+          { resolved: 'button.ts', types: ['local'] },
+          { resolved: 'button.ts', types: ['local'] },
+        ],
+      },
+      { source: 'button.ts', deps: [] },
+    ])
+
+    const result = transformGraph(cruise)
+
+    expect(result.adjacencyMaps.forward.get('index.ts')).toEqual(['button.ts'])
+    expect(result.adjacencyMaps.reverse.get('button.ts')).toEqual(['index.ts'])
+  })
 })

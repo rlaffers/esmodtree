@@ -28,10 +28,14 @@ export function transformGraph(cruiseResult: ICruiseResult): GraphData {
     if (!forward.has(source)) forward.set(source, [])
     if (!reverse.has(source)) reverse.set(source, [])
 
+    const seenTargets = new Set<string>()
     for (const dep of mod.dependencies) {
       if (isNpmDependency(dep.dependencyTypes)) continue
 
       const target = dep.resolved
+      if (seenTargets.has(target)) continue
+      seenTargets.add(target)
+
       forward.get(source)!.push(target)
 
       if (!reverse.has(target)) reverse.set(target, [])
