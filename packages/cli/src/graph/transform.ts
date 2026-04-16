@@ -1,5 +1,5 @@
 import type { DependencyType } from 'dependency-cruiser'
-import type { GraphData, ICruiseResult } from './types'
+import type { DependencyFlags, DependencyMetadata, GraphData, ICruiseResult } from './types'
 
 const NPM_DEP_TYPES: Set<string> = new Set<DependencyType>([
   'npm',
@@ -12,14 +12,21 @@ const NPM_DEP_TYPES: Set<string> = new Set<DependencyType>([
   'core',
 ])
 
+const INDEX_FILE_PATTERN = /(?:^|\/|\\)index\.[tj]sx?$/
+
 function isNpmDependency(depTypes: DependencyType[]): boolean {
   return depTypes.some(t => NPM_DEP_TYPES.has(t))
+}
+
+function isExportDep(depTypes: DependencyType[]): boolean {
+  return depTypes.includes('export')
 }
 
 export function transformGraph(cruiseResult: ICruiseResult): GraphData {
   const forward = new Map<string, string[]>()
   const reverse = new Map<string, string[]>()
-  const metadata = new Map<string, { circular: boolean }>()
+  const metadata = new Map<string, { circular: boolean; barrel: boolean }>()
+  const dependencyMetadata: DependencyMetadata = new Map()
 
   for (const mod of cruiseResult.modules) {
     const source = mod.source
@@ -27,12 +34,21 @@ export function transformGraph(cruiseResult: ICruiseResult): GraphData {
 
     if (!forward.has(source)) forward.set(source, [])
     if (!reverse.has(source)) reverse.set(source, [])
+    if (!dependencyMetadata.has(source)) dependencyMetadata.set(source, new Map())
 
     const seenTargets = new Set<string>()
+    let hasExportDeps = false
+    let hasNonExportLocalDeps = false
+
     for (const dep of mod.dependencies) {
       if (isNpmDependency(dep.dependencyTypes)) continue
 
       const target = dep.resolved
+
+      // Track dependency flags (dynamic) even for duplicates
+      const depFlags: DependencyFlags = { dynamic: dep.dynamic }
+      dependencyMetadata.get(source)!.set(target, depFlags)
+
       if (seenTargets.has(target)) continue
       seenTargets.add(target)
 
@@ -44,11 +60,33 @@ export function transformGraph(cruiseResult: ICruiseResult): GraphData {
       if (!forward.has(target)) forward.set(target, [])
 
       if (dep.circular) {
-        metadata.set(source, { circular: true })
-        metadata.set(target, { circular: true })
+        ensureMetadata(metadata, source).circular = true
+        ensureMetadata(metadata, target).circular = true
+      }
+
+      if (isExportDep(dep.dependencyTypes)) {
+        hasExportDeps = true
+      } else {
+        hasNonExportLocalDeps = true
       }
     }
+
+    // Barrel detection: index file where all local deps are re-exports
+    const isBarrel = INDEX_FILE_PATTERN.test(source) && hasExportDeps && !hasNonExportLocalDeps
+    ensureMetadata(metadata, source).barrel = isBarrel
   }
 
-  return { adjacencyMaps: { forward, reverse }, metadata }
+  return { adjacencyMaps: { forward, reverse }, metadata, dependencyMetadata }
+}
+
+function ensureMetadata(
+  metadata: Map<string, { circular: boolean; barrel: boolean }>,
+  key: string,
+): { circular: boolean; barrel: boolean } {
+  let entry = metadata.get(key)
+  if (!entry) {
+    entry = { circular: false, barrel: false }
+    metadata.set(key, entry)
+  }
+  return entry
 }

@@ -120,4 +120,30 @@ describe('formatTree', () => {
 
     expect(output).toBe('src/index.ts [entry]')
   })
+
+  it('renders [barrel] and [dynamic] markers', () => {
+    const node: TreeNode = {
+      path: 'src/components/index.ts',
+      circular: false,
+      markers: ['barrel'],
+      children: [
+        { path: 'src/components/Button.ts', circular: false, markers: ['dynamic'], children: [] },
+      ],
+    }
+
+    expect(formatTree(node)).toBe(
+      ['src/components/index.ts [barrel]', '└── src/components/Button.ts [dynamic]'].join('\n'),
+    )
+  })
+
+  it('renders combined markers on a single node', () => {
+    const node: TreeNode = {
+      path: 'src/components/index.ts',
+      circular: false,
+      markers: ['barrel', 'page'],
+      children: [],
+    }
+
+    expect(formatTree(node)).toBe('src/components/index.ts [barrel] [page]')
+  })
 })

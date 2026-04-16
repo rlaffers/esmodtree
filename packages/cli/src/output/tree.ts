@@ -11,7 +11,9 @@ const MARKER_COLORS: Record<string, ColorFn> = {
   page: pc.magenta,
   layout: pc.blue,
   entry: pc.green,
-  circular: pc.yellow,
+  barrel: pc.cyan,
+  dynamic: pc.yellow,
+  circular: pc.red,
 }
 
 function identity(s: string): string {

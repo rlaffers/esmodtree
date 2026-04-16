@@ -6,6 +6,8 @@ export { buildGraph } from '~/graph/build'
 export { transformGraph } from '~/graph/transform'
 export type {
   AdjacencyMaps,
+  DependencyFlags,
+  DependencyMetadata,
   GraphData,
   ModuleMarker,
   ModuleMetadata,

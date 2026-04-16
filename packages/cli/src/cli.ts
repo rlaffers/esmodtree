@@ -5,10 +5,28 @@ import { detectProjectType, detectSourceDirs } from '~/detect/project'
 import { detectRootMarkers } from '~/detect/roots'
 import { buildGraph } from '~/graph/build'
 import { transformGraph } from '~/graph/transform'
+import type { GraphData, ModuleMarker } from '~/graph/types'
 import { VERSION } from '~/index'
 import { formatTree } from '~/output/tree'
 import { traverseDown } from '~/traverse/down'
 import { traverseUp } from '~/traverse/up'
+import type { ProjectType } from '~/detect/project'
+
+function buildMarkers(projectType: ProjectType, graphData: GraphData): Map<string, ModuleMarker[]> {
+  const modulePaths = [...graphData.adjacencyMaps.forward.keys()]
+  const rootMarkers = detectRootMarkers(projectType, modulePaths)
+
+  // Merge barrel markers from graph metadata
+  for (const [path, meta] of graphData.metadata) {
+    if (meta.barrel) {
+      const existing = rootMarkers.get(path) ?? []
+      existing.push('barrel')
+      rootMarkers.set(path, existing)
+    }
+  }
+
+  return rootMarkers
+}
 
 const program = new Command()
 
@@ -33,10 +51,12 @@ program
     if (down) {
       const targetFile = relative(process.cwd(), down)
       const cruiseResult = await buildGraph([targetFile])
-      const { adjacencyMaps } = transformGraph(cruiseResult)
-      const modulePaths = [...adjacencyMaps.forward.keys()]
-      const markers = detectRootMarkers(projectType, modulePaths)
-      const tree = traverseDown(targetFile, adjacencyMaps.forward, { markers })
+      const graphData = transformGraph(cruiseResult)
+      const markers = buildMarkers(projectType, graphData)
+      const tree = traverseDown(targetFile, graphData.adjacencyMaps.forward, {
+        markers,
+        dependencyMetadata: graphData.dependencyMetadata,
+      })
       console.log(formatTree(tree, { color: useColor }))
     }
 
@@ -51,10 +71,12 @@ program
       }
 
       const cruiseResult = await buildGraph(sourceDirs)
-      const { adjacencyMaps } = transformGraph(cruiseResult)
-      const modulePaths = [...adjacencyMaps.forward.keys()]
-      const markers = detectRootMarkers(projectType, modulePaths)
-      const tree = traverseUp(targetFile, adjacencyMaps.reverse, { markers })
+      const graphData = transformGraph(cruiseResult)
+      const markers = buildMarkers(projectType, graphData)
+      const tree = traverseUp(targetFile, graphData.adjacencyMaps.reverse, {
+        markers,
+        dependencyMetadata: graphData.dependencyMetadata,
+      })
       console.log(formatTree(tree, { color: useColor }))
     }
   })

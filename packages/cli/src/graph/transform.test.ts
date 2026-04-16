@@ -3,7 +3,10 @@ import { transformGraph } from './transform'
 import type { ICruiseResult } from './types'
 
 function makeCruiseResult(
-  modules: { source: string; deps: { resolved: string; circular?: boolean; types?: string[] }[] }[],
+  modules: {
+    source: string
+    deps: { resolved: string; circular?: boolean; types?: string[]; dynamic?: boolean }[]
+  }[],
 ): ICruiseResult {
   return {
     modules: modules.map(m => ({
@@ -17,7 +20,7 @@ function makeCruiseResult(
         module: d.resolved,
         coreModule: false,
         couldNotResolve: false,
-        dynamic: false,
+        dynamic: d.dynamic ?? false,
         exoticallyRequired: false,
         followable: true,
         protocol: '' as never,
@@ -115,5 +118,65 @@ describe('transformGraph', () => {
 
     expect(result.adjacencyMaps.forward.get('index.ts')).toEqual(['button.ts'])
     expect(result.adjacencyMaps.reverse.get('button.ts')).toEqual(['index.ts'])
+  })
+
+  it('detects barrel files (index.ts with export dependencies)', () => {
+    const cruise = makeCruiseResult([
+      {
+        source: 'src/components/index.ts',
+        deps: [
+          { resolved: 'src/components/Button.ts', types: ['local', 'export'] },
+          { resolved: 'src/components/Input.ts', types: ['local', 'export'] },
+        ],
+      },
+      { source: 'src/components/Button.ts', deps: [] },
+      { source: 'src/components/Input.ts', deps: [] },
+    ])
+
+    const result = transformGraph(cruise)
+
+    expect(result.metadata.get('src/components/index.ts')?.barrel).toBe(true)
+  })
+
+  it('does not flag non-index files as barrels even with re-exports', () => {
+    const cruise = makeCruiseResult([
+      {
+        source: 'src/utils.ts',
+        deps: [{ resolved: 'src/helpers.ts', types: ['local', 'export'] }],
+      },
+      { source: 'src/helpers.ts', deps: [] },
+    ])
+
+    const result = transformGraph(cruise)
+
+    expect(result.metadata.get('src/utils.ts')?.barrel).toBe(false)
+  })
+
+  it('tracks dynamic imports in dependency metadata', () => {
+    const cruise = makeCruiseResult([
+      {
+        source: 'app.ts',
+        deps: [{ resolved: 'lazy.ts', dynamic: true }],
+      },
+      { source: 'lazy.ts', deps: [] },
+    ])
+
+    const result = transformGraph(cruise)
+
+    expect(result.dependencyMetadata.get('app.ts')?.get('lazy.ts')?.dynamic).toBe(true)
+  })
+
+  it('marks non-dynamic imports as dynamic: false', () => {
+    const cruise = makeCruiseResult([
+      {
+        source: 'app.ts',
+        deps: [{ resolved: 'utils.ts' }],
+      },
+      { source: 'utils.ts', deps: [] },
+    ])
+
+    const result = transformGraph(cruise)
+
+    expect(result.dependencyMetadata.get('app.ts')?.get('utils.ts')?.dynamic).toBe(false)
   })
 })

@@ -1,7 +1,8 @@
-import type { ModuleMarker, TreeNode } from '~/graph/types'
+import type { DependencyMetadata, ModuleMarker, TreeNode } from '~/graph/types'
 
 export type TraverseOptions = {
   markers?: Map<string, ModuleMarker[]>
+  dependencyMetadata?: DependencyMetadata
 }
 
 export function traverseUp(
@@ -9,21 +10,30 @@ export function traverseUp(
   reverse: Map<string, string[]>,
   options: TraverseOptions = {},
 ): TreeNode {
-  const { markers = new Map() } = options
+  const { markers = new Map(), dependencyMetadata = new Map() } = options
   const visited = new Set<string>()
 
-  function walk(file: string): TreeNode {
+  function walk(file: string, edgeMarkers: ModuleMarker[]): TreeNode {
     if (visited.has(file)) {
-      return { path: file, circular: true, markers: [], children: [] }
+      return { path: file, circular: true, markers: edgeMarkers, children: [] }
     }
 
     visited.add(file)
     const importers = reverse.get(file) ?? []
-    const children = importers.map(imp => walk(imp))
+    const children = importers.map(imp => {
+      const depEdgeMarkers: ModuleMarker[] = []
+      // In --up mode, the edge goes from importer → file
+      // so check if importer dynamically imports this file
+      if (dependencyMetadata.get(imp)?.get(file)?.dynamic) {
+        depEdgeMarkers.push('dynamic')
+      }
+      return walk(imp, depEdgeMarkers)
+    })
     visited.delete(file)
 
-    return { path: file, circular: false, markers: markers.get(file) ?? [], children }
+    const nodeMarkers = [...edgeMarkers, ...(markers.get(file) ?? [])]
+    return { path: file, circular: false, markers: nodeMarkers, children }
   }
 
-  return walk(startFile)
+  return walk(startFile, [])
 }

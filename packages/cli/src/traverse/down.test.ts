@@ -56,4 +56,17 @@ describe('traverseDown', () => {
     expect(circularNode.circular).toBe(true)
     expect(circularNode.children).toEqual([])
   })
+
+  it('marks dynamically imported children with [dynamic]', () => {
+    const forward = new Map([
+      ['app.ts', ['lazy.ts']],
+      ['lazy.ts', []],
+    ])
+    const dependencyMetadata = new Map([['app.ts', new Map([['lazy.ts', { dynamic: true }]])]])
+
+    const tree = traverseDown('app.ts', forward, { dependencyMetadata })
+
+    expect(tree.children[0].path).toBe('lazy.ts')
+    expect(tree.children[0].markers).toContain('dynamic')
+  })
 })
