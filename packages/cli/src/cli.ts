@@ -9,6 +9,7 @@ import { buildGraph } from '~/graph/build'
 import { transformGraph } from '~/graph/transform'
 import type { GraphData, ModuleMarker } from '~/graph/types'
 import { VERSION } from '~/index'
+import { formatJson } from '~/output/json'
 import { formatTree } from '~/output/tree'
 import { traverseDown } from '~/traverse/down'
 import { traverseUp } from '~/traverse/up'
@@ -40,12 +41,21 @@ export function createProgram(): Command {
     .option('--tsconfig <path>', 'path to tsconfig.json (skips auto-detection)')
     .option('--no-color', 'disable colored output')
     .option('--debug', 'show debug information')
+    .option('--depth <n>', 'limit tree depth', parseInt)
+    .option('--exclude <pattern>', 'exclude modules matching regex pattern')
+    .option('--json', 'output as JSON instead of tree')
+    .option('--root <dir>', 'source directory for --up scans (skips auto-detection)')
     .action(async options => {
       const down = options.down as string | undefined
       const up = options.up as string | undefined
       const useColor = options.color as boolean
       const tsconfigFlag = options.tsconfig as string | undefined
       const debug = options.debug as boolean | undefined
+      const depthLimit = options.depth as number | undefined
+      const excludePattern = options.exclude as string | undefined
+      const jsonOutput = options.json as boolean | undefined
+      const rootDir = options.root as string | undefined
+      const exclude = excludePattern ? new RegExp(excludePattern) : undefined
 
       if (!down && !up) {
         program.help()
@@ -86,14 +96,18 @@ export function createProgram(): Command {
         const tree = traverseDown(targetFile, graphData.adjacencyMaps.forward, {
           markers,
           dependencyMetadata: graphData.dependencyMetadata,
+          depth: depthLimit,
+          exclude,
         })
-        console.log(formatTree(tree, { color: useColor }))
+        console.log(jsonOutput ? formatJson(tree) : formatTree(tree, { color: useColor }))
       }
 
       if (up) {
         let sourceDirs: string[]
 
-        if (tsConfigPath) {
+        if (rootDir) {
+          sourceDirs = [rootDir]
+        } else if (tsConfigPath) {
           const raw = readFileSync(tsConfigPath, 'utf-8')
           const tsConfig = JSON.parse(raw) as TsConfigContent
           sourceDirs = getSourceDirsFromTsConfig(tsConfig)
@@ -125,8 +139,10 @@ export function createProgram(): Command {
         const tree = traverseUp(targetFile, graphData.adjacencyMaps.reverse, {
           markers,
           dependencyMetadata: graphData.dependencyMetadata,
+          depth: depthLimit,
+          exclude,
         })
-        console.log(formatTree(tree, { color: useColor }))
+        console.log(jsonOutput ? formatJson(tree) : formatTree(tree, { color: useColor }))
       }
     })
 

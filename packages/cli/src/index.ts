@@ -15,6 +15,7 @@ export type {
   ModuleMetadata,
   TreeNode,
 } from '~/graph/types'
+export { formatJson } from '~/output/json'
 export { formatTree } from '~/output/tree'
 export { traverseDown } from '~/traverse/down'
 export { traverseUp } from '~/traverse/up'

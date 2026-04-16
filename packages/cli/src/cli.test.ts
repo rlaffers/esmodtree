@@ -85,3 +85,54 @@ describe('CLI --tsconfig flag', () => {
     })
   })
 })
+
+describe('CLI --depth flag', () => {
+  it('accepts --depth option and parses it as a number', async () => {
+    const program = createProgram()
+    program.exitOverride()
+
+    await program.parseAsync(['node', 'esmodtree', '--down', 'some/file.ts', '--depth', '2'])
+
+    expect(program.opts().depth).toBe(2)
+  })
+})
+
+describe('CLI --exclude flag', () => {
+  it('accepts --exclude option', async () => {
+    const program = createProgram()
+    program.exitOverride()
+
+    await program.parseAsync([
+      'node',
+      'esmodtree',
+      '--down',
+      'some/file.ts',
+      '--exclude',
+      'node_modules',
+    ])
+
+    expect(program.opts().exclude).toBe('node_modules')
+  })
+})
+
+describe('CLI --json flag', () => {
+  it('accepts --json flag', async () => {
+    const program = createProgram()
+    program.exitOverride()
+
+    await program.parseAsync(['node', 'esmodtree', '--down', 'some/file.ts', '--json'])
+
+    expect(program.opts().json).toBe(true)
+  })
+})
+
+describe('CLI --root flag', () => {
+  it('accepts --root option', async () => {
+    const program = createProgram()
+    program.exitOverride()
+
+    await program.parseAsync(['node', 'esmodtree', '--up', 'src/file.ts', '--root', 'src'])
+
+    expect(program.opts().root).toBe('src')
+  })
+})

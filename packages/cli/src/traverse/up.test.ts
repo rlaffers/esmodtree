@@ -62,4 +62,32 @@ describe('traverseUp', () => {
 
     expect(tree).toEqual({ path: 'a.ts', circular: false, markers: [], children: [] })
   })
+
+  it('limits traversal depth when depth option is set', () => {
+    const reverse = new Map([
+      ['c.ts', ['b.ts']],
+      ['b.ts', ['a.ts']],
+      ['a.ts', []],
+    ])
+
+    const tree = traverseUp('c.ts', reverse, { depth: 1 })
+
+    expect(tree.path).toBe('c.ts')
+    expect(tree.children).toHaveLength(1)
+    expect(tree.children[0].path).toBe('b.ts')
+    expect(tree.children[0].children).toEqual([])
+  })
+
+  it('excludes modules matching the exclude pattern', () => {
+    const reverse = new Map([
+      ['c.ts', ['a.ts', 'b.test.ts']],
+      ['a.ts', []],
+      ['b.test.ts', []],
+    ])
+
+    const tree = traverseUp('c.ts', reverse, { exclude: /\.test\.ts$/ })
+
+    expect(tree.children).toHaveLength(1)
+    expect(tree.children[0].path).toBe('a.ts')
+  })
 })
