@@ -110,7 +110,11 @@ export function createProgram(): Command {
         } else if (tsConfigPath) {
           const raw = readFileSync(tsConfigPath, 'utf-8')
           const tsConfig = JSON.parse(raw) as TsConfigContent
-          sourceDirs = getSourceDirsFromTsConfig(tsConfig)
+          sourceDirs = getSourceDirsFromTsConfig(
+            tsConfig,
+            dir => existsSync(join(projectRoot, dir)),
+            projectType,
+          )
         } else {
           sourceDirs = []
         }

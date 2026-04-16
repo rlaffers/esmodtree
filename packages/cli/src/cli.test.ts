@@ -22,7 +22,11 @@ vi.mock('node:fs', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return {
     ...actual,
-    existsSync: vi.fn().mockReturnValue(false),
+    existsSync: vi.fn().mockImplementation((p: string) => {
+      // Return true for source dirs so getSourceDirsFromTsConfig keeps them
+      if (typeof p === 'string' && p.endsWith('/src')) return true
+      return false
+    }),
     readFileSync: vi.fn().mockReturnValue(JSON.stringify({ include: ['src/**/*.ts'] })),
   }
 })
