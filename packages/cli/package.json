@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "build": "vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.json --pretty false",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -28,7 +28,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "typescript": "^6.0.2",
     "vite": "^8.0.8",
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.1.4"
