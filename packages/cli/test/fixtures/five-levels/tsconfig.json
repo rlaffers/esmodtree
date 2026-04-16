@@ -6,7 +6,13 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@utils/*": ["src/utils/*"],
+      "@components/*": ["src/components/*"],
+      "~/*": ["src/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

@@ -1,8 +1,10 @@
-import { existsSync } from 'node:fs'
-import { relative } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join, relative, resolve } from 'node:path'
 import { Command } from 'commander'
 import { detectProjectType, detectSourceDirs } from '~/detect/project'
 import { detectRootMarkers } from '~/detect/roots'
+import { detectTsConfig, getSourceDirsFromTsConfig } from '~/detect/tsconfig'
+import type { TsConfigContent } from '~/detect/tsconfig'
 import { buildGraph } from '~/graph/build'
 import { transformGraph } from '~/graph/transform'
 import type { GraphData, ModuleMarker } from '~/graph/types'
@@ -16,7 +18,6 @@ function buildMarkers(projectType: ProjectType, graphData: GraphData): Map<strin
   const modulePaths = [...graphData.adjacencyMaps.forward.keys()]
   const rootMarkers = detectRootMarkers(projectType, modulePaths)
 
-  // Merge barrel markers from graph metadata
   for (const [path, meta] of graphData.metadata) {
     if (meta.barrel) {
       const existing = rootMarkers.get(path) ?? []
@@ -28,57 +29,111 @@ function buildMarkers(projectType: ProjectType, graphData: GraphData): Map<strin
   return rootMarkers
 }
 
-const program = new Command()
+export function createProgram(): Command {
+  const program = new Command()
 
-program.name('esmodtree').description('ES module import tree visualizer').version(VERSION)
+  program.name('esmodtree').description('ES module import tree visualizer').version(VERSION)
 
-program
-  .option('--down <file>', 'show dependency tree (what this file imports)')
-  .option('--up <file>', 'show importer tree (what imports this file)')
-  .option('--no-color', 'disable colored output')
-  .action(async options => {
-    const down = options.down as string | undefined
-    const up = options.up as string | undefined
-    const useColor = options.color as boolean
+  program
+    .option('--down <file>', 'show dependency tree (what this file imports)')
+    .option('--up <file>', 'show importer tree (what imports this file)')
+    .option('--tsconfig <path>', 'path to tsconfig.json (skips auto-detection)')
+    .option('--no-color', 'disable colored output')
+    .option('--debug', 'show debug information')
+    .action(async options => {
+      const down = options.down as string | undefined
+      const up = options.up as string | undefined
+      const useColor = options.color as boolean
+      const tsconfigFlag = options.tsconfig as string | undefined
+      const debug = options.debug as boolean | undefined
 
-    if (!down && !up) {
-      program.help()
-      return
-    }
-
-    const projectType = detectProjectType(file => existsSync(file))
-
-    if (down) {
-      const targetFile = relative(process.cwd(), down)
-      const cruiseResult = await buildGraph([targetFile])
-      const graphData = transformGraph(cruiseResult)
-      const markers = buildMarkers(projectType, graphData)
-      const tree = traverseDown(targetFile, graphData.adjacencyMaps.forward, {
-        markers,
-        dependencyMetadata: graphData.dependencyMetadata,
-      })
-      console.log(formatTree(tree, { color: useColor }))
-    }
-
-    if (up) {
-      const targetFile = relative(process.cwd(), up)
-      const sourceDirs = detectSourceDirs(dir => existsSync(dir))
-
-      if (sourceDirs.length === 0) {
-        console.error('Could not detect source directories. Use --root to specify manually.')
-        process.exitCode = 1
+      if (!down && !up) {
+        program.help()
         return
       }
 
-      const cruiseResult = await buildGraph(sourceDirs)
-      const graphData = transformGraph(cruiseResult)
-      const markers = buildMarkers(projectType, graphData)
-      const tree = traverseUp(targetFile, graphData.adjacencyMaps.reverse, {
-        markers,
-        dependencyMetadata: graphData.dependencyMetadata,
-      })
-      console.log(formatTree(tree, { color: useColor }))
-    }
-  })
+      const absTarget = resolve((down ?? up)!)
+      const tsConfigPath =
+        tsconfigFlag ?? detectTsConfig(dirname(absTarget), { fileExists: existsSync })
 
-program.parse()
+      // Project root is the tsconfig's directory, or cwd as fallback
+      const projectRoot = tsConfigPath ? dirname(resolve(tsConfigPath)) : process.cwd()
+      const targetFile = relative(projectRoot, absTarget)
+      // Make tsconfig path relative to project root for dep-cruiser
+      const relTsConfigPath = tsConfigPath
+        ? relative(projectRoot, resolve(tsConfigPath))
+        : undefined
+
+      const projectType = detectProjectType(file => existsSync(join(projectRoot, file)))
+
+      if (debug) {
+        console.log('[debug] cwd:', process.cwd())
+        console.log('[debug] absTarget:', absTarget)
+        console.log('[debug] tsConfigPath:', tsConfigPath ?? '(not found)')
+        console.log('[debug] projectRoot:', projectRoot)
+        console.log('[debug] targetFile:', targetFile)
+        console.log('[debug] relTsConfigPath:', relTsConfigPath ?? '(none)')
+        console.log('[debug] projectType:', projectType)
+      }
+
+      if (down) {
+        const cruiseResult = await buildGraph([targetFile], {
+          tsConfigPath: relTsConfigPath,
+          cwd: projectRoot,
+        })
+        const graphData = transformGraph(cruiseResult)
+        const markers = buildMarkers(projectType, graphData)
+        const tree = traverseDown(targetFile, graphData.adjacencyMaps.forward, {
+          markers,
+          dependencyMetadata: graphData.dependencyMetadata,
+        })
+        console.log(formatTree(tree, { color: useColor }))
+      }
+
+      if (up) {
+        let sourceDirs: string[]
+
+        if (tsConfigPath) {
+          const raw = readFileSync(tsConfigPath, 'utf-8')
+          const tsConfig = JSON.parse(raw) as TsConfigContent
+          sourceDirs = getSourceDirsFromTsConfig(tsConfig)
+        } else {
+          sourceDirs = []
+        }
+
+        if (sourceDirs.length === 0) {
+          sourceDirs = detectSourceDirs(dir => existsSync(join(projectRoot, dir)))
+        }
+
+        if (debug) {
+          console.log('[debug] sourceDirs:', sourceDirs)
+          console.log('[debug] tsconfig read from:', tsConfigPath)
+        }
+
+        if (sourceDirs.length === 0) {
+          console.log('Could not detect source directories. Use --root to specify manually.')
+          process.exitCode = 1
+          return
+        }
+
+        const cruiseResult = await buildGraph(sourceDirs, {
+          tsConfigPath: relTsConfigPath,
+          cwd: projectRoot,
+        })
+        const graphData = transformGraph(cruiseResult)
+        const markers = buildMarkers(projectType, graphData)
+        const tree = traverseUp(targetFile, graphData.adjacencyMaps.reverse, {
+          markers,
+          dependencyMetadata: graphData.dependencyMetadata,
+        })
+        console.log(formatTree(tree, { color: useColor }))
+      }
+    })
+
+  return program
+}
+
+// Run CLI when executed directly (not imported for testing)
+if (process.env['VITEST'] === undefined) {
+  createProgram().parse()
+}

@@ -2,6 +2,8 @@ export const VERSION = '0.1.0'
 
 export { detectProjectType, detectSourceDirs, ProjectType } from '~/detect/project'
 export { detectRootMarkers } from '~/detect/roots'
+export { detectTsConfig, getSourceDirsFromTsConfig } from '~/detect/tsconfig'
+export type { DetectTsConfigOptions, TsConfigContent } from '~/detect/tsconfig'
 export { buildGraph } from '~/graph/build'
 export { transformGraph } from '~/graph/transform'
 export type {
