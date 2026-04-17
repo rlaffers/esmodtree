@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatJson } from './json'
+import { formatJson } from '../json'
 import type { TreeNode } from '~/graph/types'
 
 describe('formatJson', () => {

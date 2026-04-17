@@ -41,6 +41,11 @@ pnpm --filter @esmodtree/cli test       # vitest run
 - avoid use `any`
 - avoid type assertions
 
+## Commit Conventions
+
+- Use **conventional commits** format: `<type>(<scope>): <description>`
+- Never commit without asking me with the `question` tool first!
+
 ## Architecture
 
 - `packages/cli/src/cli.ts` -- CLI entry point (bin)

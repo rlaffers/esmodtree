@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ProjectType, detectProjectType, detectSourceDirs } from './project'
+import { ProjectType, detectProjectType, detectSourceDirs } from '../project'
 
 describe('detectSourceDirs', () => {
   it('returns existing common source directories', () => {

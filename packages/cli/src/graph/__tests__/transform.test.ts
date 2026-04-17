@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { transformGraph } from './transform'
-import type { ICruiseResult } from './types'
+import { transformGraph } from '../transform'
+import type { ICruiseResult } from '../types'
 
 function makeCruiseResult(
   modules: {

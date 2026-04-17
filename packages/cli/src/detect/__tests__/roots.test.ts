@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { detectRootMarkers } from './roots'
-import { ProjectType } from './project'
+import { detectRootMarkers } from '../roots'
+import { ProjectType } from '../project'
 
 describe('detectRootMarkers', () => {
   it('flags pages router files as [page] in Next.js projects', () => {

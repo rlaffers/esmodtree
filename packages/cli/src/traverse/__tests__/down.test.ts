@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { traverseDown } from './down'
+import { traverseDown } from '../down'
 
 describe('traverseDown', () => {
   it('produces a linear tree for a simple chain A→B→C', () => {

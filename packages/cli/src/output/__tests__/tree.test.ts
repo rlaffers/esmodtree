@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatTree } from './tree'
+import { formatTree } from '../tree'
 import type { TreeNode } from '~/graph/types'
 
 describe('formatTree', () => {

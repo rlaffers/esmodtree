@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createProgram } from './cli'
+import { createProgram } from '../cli'
 
 // Mock heavy dependencies so the action can run without real filesystem/dep-cruiser
 const mockBuildGraph = vi.fn().mockResolvedValue({ modules: [] })

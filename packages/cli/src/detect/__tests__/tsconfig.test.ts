@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { detectTsConfig, getSourceDirsFromTsConfig } from './tsconfig'
-import { ProjectType } from './project'
+import { detectTsConfig, getSourceDirsFromTsConfig } from '../tsconfig'
+import { ProjectType } from '../project'
 
 describe('detectTsConfig', () => {
   it('finds tsconfig.json by walking up directories', () => {
