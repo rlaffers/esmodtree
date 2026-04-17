@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { buildGraph } from '~/graph/build'
 import { transformGraph } from '~/graph/transform'
 
-const FIXTURE_DIR = resolve(import.meta.dirname, '../../test/fixtures/five-levels')
+const FIXTURE_DIR = resolve(import.meta.dirname, '../../../test/fixtures/five-levels')
 const TSCONFIG_PATH = resolve(FIXTURE_DIR, 'tsconfig.json')
 
 describe('tsconfig path alias resolution', () => {
