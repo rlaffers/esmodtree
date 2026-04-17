@@ -13,7 +13,8 @@
     "typecheck:packages": "pnpm -r run typecheck",
     "prepare": "husky",
     "check": "pnpm format:check && pnpm typecheck",
-    "release": "pnpm --filter @esmodtree/cli exec semantic-release"
+    "release": "pnpm --filter @esmodtree/cli exec semantic-release",
+    "release:local": "op run --env-file=.env.release -- pnpm --filter @esmodtree/cli exec semantic-release --no-ci"
   },
   "keywords": [],
   "author": "",
