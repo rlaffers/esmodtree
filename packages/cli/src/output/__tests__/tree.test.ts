@@ -138,12 +138,57 @@ describe('formatTree', () => {
 
   it('renders combined markers on a single node', () => {
     const node: TreeNode = {
-      path: 'src/components/index.ts',
+      path: 'app/page.tsx',
       circular: false,
-      markers: ['barrel', 'page'],
+      markers: ['page', 'entry'],
       children: [],
     }
 
-    expect(formatTree(node)).toBe('src/components/index.ts [barrel] [page]')
+    expect(formatTree(node)).toBe('app/page.tsx [page] [entry]')
+  })
+
+  it('renders a forest (array of trees) with each root separated by a blank line', () => {
+    const forest: TreeNode[] = [
+      {
+        path: 'src/index.ts',
+        circular: false,
+        markers: ['entry'],
+        children: [
+          {
+            path: 'src/app.ts',
+            circular: false,
+            markers: [],
+            children: [{ path: 'src/button.ts', circular: false, markers: [], children: [] }],
+          },
+        ],
+      },
+      {
+        path: 'src/consumer.ts',
+        circular: false,
+        markers: [],
+        children: [{ path: 'src/button.ts', circular: false, markers: [], children: [] }],
+      },
+    ]
+
+    expect(formatTree(forest)).toBe(
+      [
+        'src/index.ts [entry]',
+        '└── src/app.ts',
+        '    └── src/button.ts',
+        'src/consumer.ts',
+        '└── src/button.ts',
+      ].join('\n'),
+    )
+  })
+
+  it('renders a single-element forest the same as a single node', () => {
+    const node: TreeNode = {
+      path: 'a.ts',
+      circular: false,
+      markers: [],
+      children: [{ path: 'b.ts', circular: false, markers: [], children: [] }],
+    }
+
+    expect(formatTree([node])).toBe(formatTree(node))
   })
 })

@@ -12,6 +12,7 @@ import { VERSION } from '~/index'
 import { formatJson } from '~/output/json'
 import { formatTree } from '~/output/tree'
 import { traverseDown } from '~/traverse/down'
+import { reverseTree } from '~/traverse/reverse'
 import { traverseUp } from '~/traverse/up'
 import type { ProjectType } from '~/detect/project'
 
@@ -38,6 +39,7 @@ export function createProgram(): Command {
   program
     .option('--down <file>', 'show dependency tree (what this file imports)')
     .option('--up <file>', 'show importer tree (what imports this file)')
+    .option('--upup <file>', 'show reversed importer tree (ancestors on top)')
     .option('--tsconfig <path>', 'path to tsconfig.json (skips auto-detection)')
     .option('--no-color', 'disable colored output')
     .option('--debug', 'show debug information')
@@ -48,6 +50,7 @@ export function createProgram(): Command {
     .action(async options => {
       const down = options.down as string | undefined
       const up = options.up as string | undefined
+      const upup = options.upup as string | undefined
       const useColor = options.color as boolean
       const tsconfigFlag = options.tsconfig as string | undefined
       const debug = options.debug as boolean | undefined
@@ -57,12 +60,12 @@ export function createProgram(): Command {
       const rootDir = options.root as string | undefined
       const exclude = excludePattern ? new RegExp(excludePattern) : undefined
 
-      if (!down && !up) {
+      if (!down && !up && !upup) {
         program.help()
         return
       }
 
-      const absTarget = resolve((down ?? up)!)
+      const absTarget = resolve((down ?? up ?? upup)!)
       const tsConfigPath =
         tsconfigFlag ?? detectTsConfig(dirname(absTarget), { fileExists: existsSync })
 
@@ -102,7 +105,7 @@ export function createProgram(): Command {
         console.log(jsonOutput ? formatJson(tree) : formatTree(tree, { color: useColor }))
       }
 
-      if (up) {
+      if (up || upup) {
         let sourceDirs: string[]
 
         if (rootDir) {
@@ -146,7 +149,13 @@ export function createProgram(): Command {
           depth: depthLimit,
           exclude,
         })
-        console.log(jsonOutput ? formatJson(tree) : formatTree(tree, { color: useColor }))
+
+        if (upup) {
+          const forest = reverseTree(tree)
+          console.log(jsonOutput ? formatJson(forest) : formatTree(forest, { color: useColor }))
+        } else {
+          console.log(jsonOutput ? formatJson(tree) : formatTree(tree, { color: useColor }))
+        }
       }
     })
 

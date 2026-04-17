@@ -18,4 +18,5 @@ export type {
 export { formatJson } from '~/output/json'
 export { formatTree } from '~/output/tree'
 export { traverseDown } from '~/traverse/down'
+export { reverseTree } from '~/traverse/reverse'
 export { traverseUp } from '~/traverse/up'
