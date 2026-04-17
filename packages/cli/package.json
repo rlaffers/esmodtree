@@ -13,6 +13,8 @@
   ],
   "scripts": {
     "build": "vite build",
+    "prepack": "pnpm build",
+    "prepublishOnly": "pnpm check",
     "format": "pnpm exec prettier . --write",
     "format:check": "pnpm exec prettier . --check",
     "typecheck": "tsc -p tsconfig.json",
@@ -31,6 +33,9 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "vite-plugin-dts": "^4.5.4"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
   },
   "dependencies": {
     "commander": "^14.0.3",
