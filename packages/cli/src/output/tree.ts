@@ -20,6 +20,13 @@ function identity(s: string): string {
   return s
 }
 
+function colorizeFilename(filePath: string, color: boolean): string {
+  if (!color) return filePath
+  const lastSlash = filePath.lastIndexOf('/')
+  if (lastSlash === -1) return pc.white(filePath)
+  return filePath.slice(0, lastSlash + 1) + pc.white(filePath.slice(lastSlash + 1))
+}
+
 function getColorFn(tag: string, color: boolean): ColorFn {
   if (!color) return identity
   return MARKER_COLORS[tag] ?? identity
@@ -34,7 +41,7 @@ export function formatTree(node: TreeNode, options: FormatTreeOptions = {}): str
     const markerTags = n.markers.map(m => getColorFn(m, color)(`[${m}]`))
     if (n.circular) markerTags.push(getColorFn('circular', color)('[circular]'))
     const suffix = markerTags.length > 0 ? ` ${markerTags.join(' ')}` : ''
-    lines.push(`${prefix}${connector}${n.path}${suffix}`)
+    lines.push(`${prefix}${connector}${colorizeFilename(n.path, color)}${suffix}`)
 
     const childPrefix = isRoot ? '' : prefix + (isLast ? '    ' : '│   ')
     n.children.forEach((child, i) => {
