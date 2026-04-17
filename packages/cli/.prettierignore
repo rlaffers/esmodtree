@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+coverage
+.next
+.turbo
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.husky
+.ai
