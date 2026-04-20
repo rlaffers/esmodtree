@@ -1,28 +1,68 @@
-# Esmodtree Neovim Plugin
+# nvim-esmodtree
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/rlaffers/esmodtree/nvim-lint-test.yml?branch=master&style=for-the-badge)
-![Lua](https://img.shields.io/badge/Made%20with%20Lua-blueviolet.svg?style=for-the-badge&logo=lua)
+Neovim plugin for visualizing ES module import trees. Wraps the
+[@esmodtree/cli](https://www.npmjs.com/package/@esmodtree/cli) package.
 
-An ES module tree viewer plugin for Neovim.
+## Requirements
 
-## Using it
+- Neovim >= 0.10
+- Node.js
+- pnpm (preferred) or npm
 
-TODO
+## Installation
 
-### Plugin structure
+### lazy.nvim (recommended)
 
+```lua
+{
+  "rlaffers/esmodtree",
+  cmd = { "Esmodtree" },
+  ft = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  opts = {},
+  config = function(plugin)
+    vim.opt.rtp:append(plugin.dir .. "/packages/nvim-esmodtree")
+  end,
+}
 ```
-.
-├── lua
-│   ├── esmodtree
-│   │   └── module.lua
-│   └── esmodtree.lua
-├── Makefile
-├── plugin
-│   └── esmodtree.lua
-├── README.md
-├── tests
-│   ├── minimal_init.lua
-│   └── esmodtree
-│       └── esmodtree_spec.lua
+
+`cmd` registers the `:Esmodtree` command immediately at startup (so `:Esmodtree install`
+works before opening any JS/TS file). `ft` auto-loads the plugin when a supported filetype
+is opened.
+
+### Other plugin managers
+
+Install with any plugin manager that adds the plugin to the runtimepath. The `:Esmodtree`
+command is registered automatically on startup via `plugin/esmodtree.lua`. Then call
+`setup()` somewhere in your config:
+
+```lua
+require("esmodtree").setup()
 ```
+
+## Usage
+
+```vim
+" Install the CLI (one-time setup)
+:Esmodtree install
+
+" Show what the current file imports (dependency tree)
+:Esmodtree down
+
+" Show what imports the current file (importer tree)
+:Esmodtree up
+```
+
+`:Esmodtree install` installs the CLI binary locally within the plugin directory. It prefers
+pnpm when available, falling back to npm.
+
+`:Esmodtree down` and `:Esmodtree up` display the tree output in a centered floating
+window. Press `q` or `<Esc>` to close.
+
+## Running tests
+
+```sh
+make test
+```
+
+Tests use [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) (cloned automatically
+to `/tmp/plenary.nvim` on first run).

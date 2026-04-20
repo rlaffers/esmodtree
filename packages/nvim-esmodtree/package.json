@@ -1,0 +1,7 @@
+{
+  "name": "nvim-esmodtree",
+  "private": true,
+  "dependencies": {
+    "@esmodtree/cli": "0.1.1"
+  }
+}
