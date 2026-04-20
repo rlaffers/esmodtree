@@ -7,5 +7,9 @@ end
 vim.opt.rtp:append(".")
 vim.opt.rtp:append(plenary_dir)
 
+-- Add tests/ directory to Lua package path so spec files can require shared helpers
+local tests_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
+package.path = tests_dir .. "/?.lua;" .. package.path
+
 vim.cmd("runtime plugin/plenary.vim")
 require("plenary.busted")

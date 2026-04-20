@@ -15,7 +15,7 @@ function M.dispatch(subcmd)
   elseif subcmd == "install" then
     require("esmodtree.install").run()
   elseif subcmd == "down" or subcmd == "up" then
-    vim.notify("Esmodtree: '" .. subcmd .. "' is not yet implemented", vim.log.levels.ERROR)
+    require("esmodtree.runner").run(subcmd)
   else
     vim.notify("Esmodtree: unknown command '" .. subcmd .. "'", vim.log.levels.ERROR)
   end

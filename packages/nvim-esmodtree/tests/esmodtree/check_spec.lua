@@ -1,96 +1,4 @@
--- Test helper: captures vim.notify calls
-local function capture_notifications()
-  local notifications = {}
-  local original_notify = vim.notify
-  vim.notify = function(msg, level, opts)
-    table.insert(notifications, { msg = msg, level = level, opts = opts })
-  end
-  return notifications, function()
-    vim.notify = original_notify
-  end
-end
-
--- Test helper: stubs vim.fn.filereadable to return controlled values
-local function stub_filereadable(map)
-  local original = vim.fn.filereadable
-  vim.fn.filereadable = function(path)
-    for pattern, val in pairs(map) do
-      if path:find(pattern, 1, true) then
-        return val
-      end
-    end
-    return original(path)
-  end
-  return function()
-    vim.fn.filereadable = original
-  end
-end
-
--- Test helper: stubs vim.fn.readfile to return controlled content for matching paths
-local function stub_readfile(map)
-  local original = vim.fn.readfile
-  vim.fn.readfile = function(path)
-    for pattern, lines in pairs(map) do
-      if path:find(pattern, 1, true) then
-        return lines
-      end
-    end
-    return original(path)
-  end
-  return function()
-    vim.fn.readfile = original
-  end
-end
-
--- Test helper: stubs vim.system to capture calls and auto-complete with scripted results.
-local function stub_system(results)
-  results = results or {}
-  local calls = {}
-  local original = vim.system
-  local call_index = 0
-
-  vim.system = function(cmd, opts, on_exit)
-    call_index = call_index + 1
-    table.insert(calls, { cmd = cmd, opts = opts })
-
-    local result = results[call_index] or { code = 0, stdout = "", stderr = "" }
-
-    if on_exit then
-      vim.schedule(function()
-        on_exit(result)
-      end)
-    end
-
-    return { pid = 0 }
-  end
-
-  local function restore()
-    vim.system = original
-  end
-
-  return calls, restore
-end
-
--- Test helper: stubs vim.fn.executable to return controlled values
-local function stub_executable(map)
-  local original = vim.fn.executable
-  vim.fn.executable = function(name)
-    if map[name] ~= nil then
-      return map[name]
-    end
-    return original(name)
-  end
-  return function()
-    vim.fn.executable = original
-  end
-end
-
--- Drain all pending vim.schedule callbacks
-local function drain()
-  vim.wait(200, function()
-    return false
-  end)
-end
+local h = require("helpers")
 
 describe("esmodtree.check", function()
   local check
@@ -104,8 +12,8 @@ describe("esmodtree.check", function()
   end)
 
   after_each(function()
-    drain()
-    drain()
+    h.drain()
+    h.drain()
     for _, fn in ipairs(cleanups) do
       fn()
     end
@@ -113,11 +21,12 @@ describe("esmodtree.check", function()
 
   describe("run", function()
     it("notifies error when CLI binary is missing", function()
-      local notifications, restore_notify = capture_notifications()
+      local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
-      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 0 }))
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 0 }))
 
       check.run()
+      h.drain()
 
       assert.equals(1, #notifications)
       assert.is_truthy(notifications[1].msg:find("install"))
@@ -125,18 +34,18 @@ describe("esmodtree.check", function()
     end)
 
     it("notifies OK when installed version matches required version", function()
-      local notifications, restore_notify = capture_notifications()
+      local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
-      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
-      table.insert(cleanups, stub_readfile({ ["cli-version.txt"] = { "1.2.3" } }))
-      local system_calls, restore_system = stub_system({
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, h.stub_readfile({ ["cli-version.txt"] = { "1.2.3" } }))
+      local system_calls, restore_system = h.stub_system({
         { code = 0, stdout = "1.2.3\n", stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
       check.run()
-      drain()
-      drain()
+      h.drain()
+      h.drain()
 
       local last = notifications[#notifications]
       assert.is_truthy(last.msg:find("1.2.3"))
@@ -144,18 +53,18 @@ describe("esmodtree.check", function()
     end)
 
     it("notifies warning when installed version differs from required version", function()
-      local notifications, restore_notify = capture_notifications()
+      local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
-      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
-      table.insert(cleanups, stub_readfile({ ["cli-version.txt"] = { "2.0.0" } }))
-      local system_calls, restore_system = stub_system({
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, h.stub_readfile({ ["cli-version.txt"] = { "2.0.0" } }))
+      local system_calls, restore_system = h.stub_system({
         { code = 0, stdout = "1.0.0\n", stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
       check.run()
-      drain()
-      drain()
+      h.drain()
+      h.drain()
 
       local last = notifications[#notifications]
       assert.is_truthy(last.msg:find("1.0.0"))
@@ -164,22 +73,22 @@ describe("esmodtree.check", function()
     end)
 
     it("resolves 'latest' via package manager and notifies OK when matching", function()
-      local notifications, restore_notify = capture_notifications()
+      local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
-      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
-      table.insert(cleanups, stub_readfile({ ["cli-version.txt"] = { "latest" } }))
-      table.insert(cleanups, stub_executable({ pnpm = 1, npm = 1 }))
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, h.stub_readfile({ ["cli-version.txt"] = { "latest" } }))
+      table.insert(cleanups, h.stub_executable({ pnpm = 1, npm = 1 }))
       -- First call: esmodtree --version, second call: pnpm info @esmodtree/cli version
-      local system_calls, restore_system = stub_system({
+      local system_calls, restore_system = h.stub_system({
         { code = 0, stdout = "1.5.0\n", stderr = "" },
         { code = 0, stdout = "1.5.0\n", stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
       check.run()
-      drain()
-      drain()
-      drain()
+      h.drain()
+      h.drain()
+      h.drain()
 
       -- Should have made 2 vim.system calls
       assert.equals(2, #system_calls)
@@ -192,22 +101,22 @@ describe("esmodtree.check", function()
     end)
 
     it("resolves 'latest' and notifies warning on mismatch", function()
-      local notifications, restore_notify = capture_notifications()
+      local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
-      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
-      table.insert(cleanups, stub_readfile({ ["cli-version.txt"] = { "latest" } }))
-      table.insert(cleanups, stub_executable({ pnpm = 0, npm = 1 }))
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, h.stub_readfile({ ["cli-version.txt"] = { "latest" } }))
+      table.insert(cleanups, h.stub_executable({ pnpm = 0, npm = 1 }))
       -- First call: esmodtree --version, second call: npm view @esmodtree/cli version
-      local system_calls, restore_system = stub_system({
+      local system_calls, restore_system = h.stub_system({
         { code = 0, stdout = "1.0.0\n", stderr = "" },
         { code = 0, stdout = "2.0.0\n", stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
       check.run()
-      drain()
-      drain()
-      drain()
+      h.drain()
+      h.drain()
+      h.drain()
 
       assert.equals(2, #system_calls)
       -- Second call should be npm view (since pnpm = 0)

@@ -1,13 +1,4 @@
-local function capture_notifications()
-  local notifications = {}
-  local original_notify = vim.notify
-  vim.notify = function(msg, level, opts)
-    table.insert(notifications, { msg = msg, level = level, opts = opts })
-  end
-  return notifications, function()
-    vim.notify = original_notify
-  end
-end
+local h = require("helpers")
 
 describe("esmodtree", function()
   before_each(function()
@@ -49,7 +40,7 @@ describe("esmodtree", function()
       local plugin = require("esmodtree")
       plugin.setup()
 
-      local notifications, restore_notify = capture_notifications()
+      local notifications, restore_notify = h.capture_notifications()
 
       plugin.dispatch("bogus")
 
@@ -60,18 +51,38 @@ describe("esmodtree", function()
       assert.equals(vim.log.levels.ERROR, notifications[1].level)
     end)
 
-    it("notifies error for down/up before phase 2 implementation", function()
+    it("dispatches down to runner module", function()
       local plugin = require("esmodtree")
       plugin.setup()
 
-      local notifications, restore_notify = capture_notifications()
+      -- Stub runner to capture the call
+      local called_with = nil
+      package.loaded["esmodtree.runner"] = {
+        run = function(subcmd)
+          called_with = subcmd
+        end,
+      }
 
       plugin.dispatch("down")
 
-      restore_notify()
+      assert.equals("down", called_with)
+    end)
 
-      assert.equals(1, #notifications)
-      assert.equals(vim.log.levels.ERROR, notifications[1].level)
+    it("dispatches up to runner module", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      -- Stub runner to capture the call
+      local called_with = nil
+      package.loaded["esmodtree.runner"] = {
+        run = function(subcmd)
+          called_with = subcmd
+        end,
+      }
+
+      plugin.dispatch("up")
+
+      assert.equals("up", called_with)
     end)
   end)
 
