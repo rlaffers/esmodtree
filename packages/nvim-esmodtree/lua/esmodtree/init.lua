@@ -1,14 +1,18 @@
 local M = {}
 
-local SUBCOMMANDS = { "down", "up", "install" }
+local SUBCOMMANDS = { "check", "down", "up", "install" }
 
 function M.setup(opts)
   opts = opts or {}
 end
 
---- Dispatch a subcommand by name
+--- Dispatch a subcommand by name. Defaults to "check" when subcmd is nil.
 function M.dispatch(subcmd)
-  if subcmd == "install" then
+  subcmd = subcmd or "check"
+
+  if subcmd == "check" then
+    require("esmodtree.check").run()
+  elseif subcmd == "install" then
     require("esmodtree.install").run()
   elseif subcmd == "down" or subcmd == "up" then
     vim.notify("Esmodtree: '" .. subcmd .. "' is not yet implemented", vim.log.levels.ERROR)

@@ -13,7 +13,9 @@ describe("esmodtree", function()
   before_each(function()
     package.loaded["esmodtree"] = nil
     package.loaded["esmodtree.install"] = nil
+    package.loaded["esmodtree.check"] = nil
     package.loaded["esmodtree.runner"] = nil
+    package.loaded["esmodtree.util"] = nil
   end)
 
   describe("setup", function()
@@ -33,6 +35,16 @@ describe("esmodtree", function()
   end)
 
   describe("dispatch", function()
+    it("dispatches to check when no subcommand given", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      -- dispatch(nil) should not error — it delegates to check
+      assert.has_no.errors(function()
+        plugin.dispatch(nil)
+      end)
+    end)
+
     it("notifies error for unrecognized subcommand", function()
       local plugin = require("esmodtree")
       plugin.setup()
@@ -73,6 +85,7 @@ describe("esmodtree", function()
       assert.is_truthy(vim.tbl_contains(completions, "down"))
       assert.is_truthy(vim.tbl_contains(completions, "up"))
       assert.is_truthy(vim.tbl_contains(completions, "install"))
+      assert.is_truthy(vim.tbl_contains(completions, "check"))
     end)
   end)
 end)

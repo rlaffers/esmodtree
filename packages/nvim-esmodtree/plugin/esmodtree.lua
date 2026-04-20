@@ -1,12 +1,7 @@
 vim.api.nvim_create_user_command("Esmodtree", function(opts)
-  local subcmd = opts.fargs[1]
-  if not subcmd then
-    vim.notify("Esmodtree: subcommand required (install, down, up)", vim.log.levels.ERROR)
-    return
-  end
-  require("esmodtree").dispatch(subcmd)
+  require("esmodtree").dispatch(opts.fargs[1])
 end, {
-  nargs = 1,
+  nargs = "?",
   complete = function()
     return require("esmodtree").complete()
   end,
