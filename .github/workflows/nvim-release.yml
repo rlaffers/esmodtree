@@ -1,0 +1,25 @@
+name: nvim-release
+on:
+  push:
+    tags:
+      - 'nvim-v*'
+jobs:
+  luarocks-upload:
+    # TODO: enable when ready
+    if: false
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: LuaRocks Upload
+        uses: nvim-neorocks/luarocks-tag-release@v7
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+        with:
+          name: 'nvim-esmodtree'
+          working-directory: packages/nvim-esmodtree
+          summary: 'ES module tree viewer'
+          detailed_description: |
+            A Neovim plugin for inspecting ECMAScript module tree.
+            Esmodtree is great for both examining how a module is used in a project,
+            and for figuring out which modules are used by the target module.
+          license: 'GPL-3.0'
