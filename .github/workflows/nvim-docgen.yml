@@ -9,19 +9,15 @@ on:
 jobs:
   docs:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v6
-      - name: panvimdoc
-        uses: kdheepak/panvimdoc@main
-        with:
-          vimdoc: esmodtree
-          description: 'Neovim plugin for visualizing ECMAScript module import trees.'
-          version: 'Neovim >= 0.10.0'
-          toc: true
-          demojify: true
-          treesitter: true
-          pandoc: packages/nvim-esmodtree/README.md
-          docmapping: true
+      - uses: ./.github/actions/setup-mise-with-lua-deps
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate vim docs
+        run: pnpm docgen
+        working-directory: packages/nvim-esmodtree
       - name: Push changes
         uses: stefanzweifel/git-auto-commit-action@v6
         with:
