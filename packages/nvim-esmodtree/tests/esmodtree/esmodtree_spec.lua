@@ -1,5 +1,19 @@
 local h = require("helpers")
 
+--- Delete a <Plug> mapping if it exists, ignoring errors.
+local function del_plug(lhs)
+  pcall(vim.keymap.del, "n", lhs)
+end
+
+--- List of all <Plug> mappings registered by setup().
+local PLUG_MAPPINGS = {
+  "<Plug>(esmodtree-down)",
+  "<Plug>(esmodtree-up)",
+  "<Plug>(esmodtree-updown)",
+  "<Plug>(esmodtree-up-symbol)",
+  "<Plug>(esmodtree-updown-symbol)",
+}
+
 describe("esmodtree", function()
   before_each(function()
     package.loaded["esmodtree"] = nil
@@ -7,6 +21,10 @@ describe("esmodtree", function()
     package.loaded["esmodtree.check"] = nil
     package.loaded["esmodtree.runner"] = nil
     package.loaded["esmodtree.util"] = nil
+    -- Clean up any <Plug> mappings from previous tests
+    for _, lhs in ipairs(PLUG_MAPPINGS) do
+      del_plug(lhs)
+    end
   end)
 
   describe("setup", function()
@@ -23,6 +41,16 @@ describe("esmodtree", function()
         plugin.setup({})
       end)
     end)
+
+    it("registers all <Plug> mappings", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      for _, lhs in ipairs(PLUG_MAPPINGS) do
+        local map = vim.fn.maparg(lhs, "n")
+        assert.is_truthy(map ~= "", "expected mapping for " .. lhs)
+      end
+    end)
   end)
 
   describe("dispatch", function()
@@ -30,7 +58,16 @@ describe("esmodtree", function()
       local plugin = require("esmodtree")
       plugin.setup()
 
-      -- dispatch(nil) should not error — it delegates to check
+      -- dispatch({}) should not error — it delegates to check
+      assert.has_no.errors(function()
+        plugin.dispatch({})
+      end)
+    end)
+
+    it("dispatches to check when called with nil", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
       assert.has_no.errors(function()
         plugin.dispatch(nil)
       end)
@@ -42,7 +79,7 @@ describe("esmodtree", function()
 
       local notifications, restore_notify = h.capture_notifications()
 
-      plugin.dispatch("bogus")
+      plugin.dispatch({ "bogus" })
 
       restore_notify()
 
@@ -55,34 +92,72 @@ describe("esmodtree", function()
       local plugin = require("esmodtree")
       plugin.setup()
 
-      -- Stub runner to capture the call
-      local called_with = nil
+      local called_subcmd, called_symbol
       package.loaded["esmodtree.runner"] = {
-        run = function(subcmd)
-          called_with = subcmd
+        run = function(subcmd, symbol)
+          called_subcmd = subcmd
+          called_symbol = symbol
         end,
       }
 
-      plugin.dispatch("down")
+      plugin.dispatch({ "down" })
 
-      assert.equals("down", called_with)
+      assert.equals("down", called_subcmd)
+      assert.is_nil(called_symbol)
     end)
 
     it("dispatches up to runner module", function()
       local plugin = require("esmodtree")
       plugin.setup()
 
-      -- Stub runner to capture the call
-      local called_with = nil
+      local called_subcmd, called_symbol
       package.loaded["esmodtree.runner"] = {
-        run = function(subcmd)
-          called_with = subcmd
+        run = function(subcmd, symbol)
+          called_subcmd = subcmd
+          called_symbol = symbol
         end,
       }
 
-      plugin.dispatch("up")
+      plugin.dispatch({ "up" })
 
-      assert.equals("up", called_with)
+      assert.equals("up", called_subcmd)
+      assert.is_nil(called_symbol)
+    end)
+
+    it("dispatches up with symbol to runner module", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      local called_subcmd, called_symbol
+      package.loaded["esmodtree.runner"] = {
+        run = function(subcmd, symbol)
+          called_subcmd = subcmd
+          called_symbol = symbol
+        end,
+      }
+
+      plugin.dispatch({ "up", "MyButton" })
+
+      assert.equals("up", called_subcmd)
+      assert.equals("MyButton", called_symbol)
+    end)
+
+    it("dispatches updown with symbol to runner module", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      local called_subcmd, called_symbol
+      package.loaded["esmodtree.runner"] = {
+        run = function(subcmd, symbol)
+          called_subcmd = subcmd
+          called_symbol = symbol
+        end,
+      }
+
+      plugin.dispatch({ "updown", "MyButton" })
+
+      assert.equals("updown", called_subcmd)
+      assert.equals("MyButton", called_symbol)
     end)
   end)
 

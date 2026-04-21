@@ -48,7 +48,10 @@ require("esmodtree").setup()
 " Show what the current file imports (dependency tree)
 :Esmodtree down
 
-" Show what imports the current file (importer tree)
+" Show what imports the current file (importer tree, target at root)
+:Esmodtree updown
+
+" Show what imports the current file (ancestors at root)
 :Esmodtree up
 
 " Check if the plugin is properly installed and configured
@@ -58,8 +61,44 @@ require("esmodtree").setup()
 `:Esmodtree install` installs the CLI binary locally within the plugin directory. It prefers
 pnpm when available, falling back to npm.
 
-`:Esmodtree down` and `:Esmodtree up` display the tree output in a centered floating
-window. Press `q` or `<Esc>` to close.
+`:Esmodtree down`, `:Esmodtree up`, and `:Esmodtree updown` display the tree output in a
+centered floating window. Press `q` or `<Esc>` to close.
+
+### Filtering by symbol
+
+When a file exports multiple symbols, you can filter the importer tree to only
+show branches that import a specific named export:
+
+```vim
+" Show only importers of MyButton from the current file
+:Esmodtree up MyButton
+:Esmodtree updown MyButton
+```
+
+If the symbol is not exported from the current file, the CLI will report an
+error. This option is only available for `up` and `updown` -- using it with
+`down` will produce an error.
+
+### Key mappings
+
+The plugin provides `<Plug>` mappings that you can bind to your preferred keys.
+These are registered when `setup()` is called.
+
+```lua
+vim.keymap.set("n", "<leader>ed", "<Plug>(esmodtree-down)")
+vim.keymap.set("n", "<leader>eu", "<Plug>(esmodtree-up)")
+vim.keymap.set("n", "<leader>eU", "<Plug>(esmodtree-updown)")
+vim.keymap.set("n", "<leader>es", "<Plug>(esmodtree-up-symbol)")
+vim.keymap.set("n", "<leader>eS", "<Plug>(esmodtree-updown-symbol)")
+```
+
+| Mapping                           | Description                                                             |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| `<Plug>(esmodtree-down)`          | Show dependency tree for current file                                   |
+| `<Plug>(esmodtree-up)`            | Show importer tree for current file                                     |
+| `<Plug>(esmodtree-updown)`        | Show importer tree (target at root) for current file                    |
+| `<Plug>(esmodtree-up-symbol)`     | Show importer tree filtered to the symbol under cursor                  |
+| `<Plug>(esmodtree-updown-symbol)` | Show importer tree (target at root) filtered to the symbol under cursor |
 
 ## Running tests
 

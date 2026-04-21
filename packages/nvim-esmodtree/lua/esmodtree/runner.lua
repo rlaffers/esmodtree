@@ -61,7 +61,8 @@ local function open_float(lines)
 end
 
 --- Run the CLI with the given subcommand for the current buffer.
-function M.run(subcmd)
+--- When `symbol` is provided, appends `--symbol <name>` to the CLI command.
+function M.run(subcmd, symbol)
   local plugin_root = util.get_plugin_root()
   local bin = util.bin_path(plugin_root)
 
@@ -78,11 +79,22 @@ function M.run(subcmd)
     return
   end
 
+  -- Build command
+  local cmd = { bin, "--" .. subcmd, filepath, "--no-color" }
+  if symbol then
+    table.insert(cmd, "--symbol")
+    table.insert(cmd, symbol)
+  end
+
   -- Show spinner
-  vim.notify("Esmodtree: running --" .. subcmd .. "...", vim.log.levels.INFO, { replace = notify_id })
+  local label = "--" .. subcmd
+  if symbol then
+    label = label .. " (" .. symbol .. ")"
+  end
+  vim.notify("Esmodtree: running " .. label .. "...", vim.log.levels.INFO, { replace = notify_id })
 
   -- Execute CLI asynchronously
-  vim.system({ bin, "--" .. subcmd, filepath, "--no-color" }, {}, function(result)
+  vim.system(cmd, {}, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
         vim.notify("Esmodtree: " .. (result.stderr or "unknown error"), vim.log.levels.ERROR, { replace = notify_id })

@@ -317,5 +317,75 @@ describe("esmodtree.runner", function()
       assert.is_true(#notifications >= 1)
       assert.equals(vim.log.levels.INFO, notifications[1].level)
     end)
+
+    it("appends --symbol flag for up subcommand when symbol is provided", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/components/Button.ts"))
+      local system_calls, restore_system = h.stub_system()
+      table.insert(cleanups, restore_system)
+
+      runner.run("up", "MyButton")
+
+      assert.equals(1, #system_calls)
+      local cmd = system_calls[1].cmd
+      assert.is_truthy(cmd[1]:find("esmodtree"))
+      assert.equals("--up", cmd[2])
+      assert.equals("/project/src/components/Button.ts", cmd[3])
+      assert.equals("--no-color", cmd[4])
+      assert.equals("--symbol", cmd[5])
+      assert.equals("MyButton", cmd[6])
+    end)
+
+    it("appends --symbol flag for updown subcommand when symbol is provided", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/components/Button.ts"))
+      local system_calls, restore_system = h.stub_system()
+      table.insert(cleanups, restore_system)
+
+      runner.run("updown", "MyButton")
+
+      assert.equals(1, #system_calls)
+      local cmd = system_calls[1].cmd
+      assert.is_truthy(cmd[1]:find("esmodtree"))
+      assert.equals("--updown", cmd[2])
+      assert.equals("/project/src/components/Button.ts", cmd[3])
+      assert.equals("--no-color", cmd[4])
+      assert.equals("--symbol", cmd[5])
+      assert.equals("MyButton", cmd[6])
+    end)
+
+    it("does not include --symbol when symbol is nil", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local system_calls, restore_system = h.stub_system()
+      table.insert(cleanups, restore_system)
+
+      runner.run("up")
+
+      assert.equals(1, #system_calls)
+      local cmd = system_calls[1].cmd
+      assert.equals(4, #cmd)
+      assert.equals("--no-color", cmd[4])
+    end)
+
+    it("includes symbol in spinner notification", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system()
+      table.insert(cleanups, restore_system)
+
+      runner.run("up", "MyButton")
+
+      assert.is_true(#notifications >= 1)
+      assert.is_truthy(notifications[1].msg:find("MyButton"))
+    end)
   end)
 end)

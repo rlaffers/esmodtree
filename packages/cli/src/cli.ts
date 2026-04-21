@@ -1,10 +1,11 @@
+import { Command } from 'commander'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
-import { Command } from 'commander'
+import type { ProjectType } from '~/detect/project'
 import { detectProjectType, detectSourceDirs } from '~/detect/project'
 import { detectRootMarkers } from '~/detect/roots'
-import { detectTsConfig, getSourceDirsFromTsConfig } from '~/detect/tsconfig'
 import type { TsConfigContent } from '~/detect/tsconfig'
+import { detectTsConfig, getSourceDirsFromTsConfig } from '~/detect/tsconfig'
 import { buildGraph } from '~/graph/build'
 import { transformGraph } from '~/graph/transform'
 import type { GraphData, ModuleMarker } from '~/graph/types'
@@ -16,7 +17,6 @@ import { fileImportsSymbol, getExportedSymbols } from '~/parse/symbols'
 import { traverseDown } from '~/traverse/down'
 import { reverseTree } from '~/traverse/reverse'
 import { traverseUp } from '~/traverse/up'
-import type { ProjectType } from '~/detect/project'
 
 /**
  * Produces per-module markers (e.g. route entry point, barrel) used to annotate
