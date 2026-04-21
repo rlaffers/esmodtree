@@ -46,6 +46,25 @@ pnpm --filter @esmodtree/cli test       # vitest run
 - Use **conventional commits** format: `<type>(<scope>): <description>`
 - Never commit without asking me with the `question` tool first!
 
+## GitHub
+
+Repo: `github.com/rlaffers/esmodtree`
+
+Use the `gh` CLI for all GitHub interactions (issues, PRs, releases, CI status):
+
+```sh
+gh issue list
+gh issue view <number>
+gh pr list
+gh pr view <number>
+gh pr create --title "..." --body "..."
+gh run list                  # CI workflow runs
+gh run view <id>             # view run details / logs
+gh release list
+```
+
+Authenticate via `GH_TOKEN` env var if `gh auth login` has not been run.
+
 ## Architecture
 
 - `packages/cli/src/cli.ts` -- CLI entry point (bin)
