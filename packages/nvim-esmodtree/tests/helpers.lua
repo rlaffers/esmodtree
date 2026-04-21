@@ -89,6 +89,32 @@ function M.stub_system(results)
   return calls, restore
 end
 
+--- Stubs vim.fn.mkdir to capture calls and return success.
+function M.stub_mkdir()
+  local calls = {}
+  local original = vim.fn.mkdir
+  vim.fn.mkdir = function(path, flags)
+    table.insert(calls, { path = path, flags = flags })
+    return 1
+  end
+  return calls, function()
+    vim.fn.mkdir = original
+  end
+end
+
+--- Stubs vim.fn.writefile to capture calls and return success.
+function M.stub_writefile()
+  local calls = {}
+  local original = vim.fn.writefile
+  vim.fn.writefile = function(lines, path, flags)
+    table.insert(calls, { lines = lines, path = path, flags = flags })
+    return 0
+  end
+  return calls, function()
+    vim.fn.writefile = original
+  end
+end
+
 --- Drain all pending vim.schedule callbacks
 function M.drain()
   vim.wait(200, function()

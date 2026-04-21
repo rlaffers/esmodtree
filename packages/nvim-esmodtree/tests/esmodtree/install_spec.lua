@@ -3,6 +3,8 @@ local h = require("helpers")
 -- Read the expected CLI version from cli-version.txt (same resolution as the install module)
 local plugin_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
 local expected_version = vim.trim(vim.fn.readfile(plugin_root .. "/cli-version.txt")[1])
+local expected_cli_dist = vim.fn.fnamemodify(plugin_root .. "/../cli/dist/cli.js", ":p")
+local expected_bin = plugin_root .. "/node_modules/.bin/esmodtree"
 
 describe("esmodtree.install", function()
   local install
@@ -153,6 +155,143 @@ describe("esmodtree.install", function()
       local last = notifications[#notifications]
       assert.is_truthy(last.msg:find("verification failed"))
       assert.equals(vim.log.levels.ERROR, last.level)
+    end)
+  end)
+
+  describe("local dev install (USE_LOCAL_CLI=true)", function()
+    it("takes the local path when .env has USE_LOCAL_CLI=true and dist exists", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, h.stub_executable({ node = 1 }))
+      table.insert(cleanups, h.stub_filereadable({
+        [".env"] = 1,
+        ["cli.js"] = 1,
+      }))
+      table.insert(cleanups, h.stub_readfile({
+        [".env"] = { "USE_LOCAL_CLI=true" },
+      }))
+      local mkdir_calls, restore_mkdir = h.stub_mkdir()
+      table.insert(cleanups, restore_mkdir)
+      local write_calls, restore_writefile = h.stub_writefile()
+      table.insert(cleanups, restore_writefile)
+      local system_calls, restore_system = h.stub_system({
+        { code = 0, stdout = "", stderr = "" }, -- chmod
+        { code = 0, stdout = "1.0.0\n", stderr = "" }, -- --version
+      })
+      table.insert(cleanups, restore_system)
+
+      install.run()
+      h.drain()
+      h.drain()
+
+      -- Should not have called pnpm/npm
+      assert.equals("chmod", system_calls[1].cmd[1])
+      assert.equals("+x", system_calls[1].cmd[2])
+      -- bin path ends with the expected suffix regardless of absolute vs relative root
+      assert.is_truthy(system_calls[1].cmd[3]:find("node_modules/.bin/esmodtree", 1, true))
+
+      -- Should have written wrapper script to same path as chmod target
+      assert.equals(1, #write_calls)
+      assert.equals(system_calls[1].cmd[3], write_calls[1].path)
+      assert.equals("#!/bin/sh", write_calls[1].lines[1])
+      assert.is_truthy(write_calls[1].lines[2]:find("cli.js", 1, true))
+
+      -- Should have created bin dir
+      assert.equals(1, #mkdir_calls)
+
+      -- Should notify success
+      local last = notifications[#notifications]
+      assert.equals(vim.log.levels.INFO, last.level)
+      assert.is_truthy(last.msg:find("local CLI"))
+    end)
+
+    it("notifies error when dist cli.js is missing", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, h.stub_executable({ node = 1 }))
+      table.insert(cleanups, h.stub_filereadable({
+        [".env"] = 1,
+        ["cli.js"] = 0,
+      }))
+      table.insert(cleanups, h.stub_readfile({
+        [".env"] = { "USE_LOCAL_CLI=true" },
+      }))
+
+      install.run()
+
+      assert.equals(2, #notifications)
+      local last = notifications[#notifications]
+      assert.equals(vim.log.levels.ERROR, last.level)
+      assert.is_truthy(last.msg:find("build"))
+    end)
+
+    it("notifies error when chmod fails", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, h.stub_executable({ node = 1 }))
+      table.insert(cleanups, h.stub_filereadable({
+        [".env"] = 1,
+        ["cli.js"] = 1,
+      }))
+      table.insert(cleanups, h.stub_readfile({
+        [".env"] = { "USE_LOCAL_CLI=true" },
+      }))
+      table.insert(cleanups, select(2, h.stub_mkdir()))
+      table.insert(cleanups, select(2, h.stub_writefile()))
+      local _, restore_system = h.stub_system({
+        { code = 1, stdout = "", stderr = "operation not permitted" }, -- chmod fails
+      })
+      table.insert(cleanups, restore_system)
+
+      install.run()
+      h.drain()
+
+      local last = notifications[#notifications]
+      assert.equals(vim.log.levels.ERROR, last.level)
+      assert.is_truthy(last.msg:find("executable"))
+    end)
+
+    it("notifies error when binary verification fails after local install", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, h.stub_executable({ node = 1 }))
+      table.insert(cleanups, h.stub_filereadable({
+        [".env"] = 1,
+        ["cli.js"] = 1,
+      }))
+      table.insert(cleanups, h.stub_readfile({
+        [".env"] = { "USE_LOCAL_CLI=true" },
+      }))
+      table.insert(cleanups, select(2, h.stub_mkdir()))
+      table.insert(cleanups, select(2, h.stub_writefile()))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "", stderr = "" }, -- chmod ok
+        { code = 1, stdout = "", stderr = "error" }, -- --version fails
+      })
+      table.insert(cleanups, restore_system)
+
+      install.run()
+      h.drain()
+      h.drain()
+
+      local last = notifications[#notifications]
+      assert.equals(vim.log.levels.ERROR, last.level)
+      assert.is_truthy(last.msg:find("verification failed"))
+    end)
+
+    it("falls through to npm/pnpm install when USE_LOCAL_CLI is absent", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, h.stub_executable({ node = 1, pnpm = 1, npm = 1 }))
+      -- .env is not readable
+      table.insert(cleanups, h.stub_filereadable({ [".env"] = 0 }))
+      local system_calls, restore_system = h.stub_system()
+      table.insert(cleanups, restore_system)
+
+      install.run()
+
+      assert.is_true(#system_calls >= 1)
+      assert.equals("pnpm", system_calls[1].cmd[1])
     end)
   end)
 end)
