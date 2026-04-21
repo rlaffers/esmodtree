@@ -22,6 +22,12 @@ function isExportDep(depTypes: DependencyType[]): boolean {
   return depTypes.includes('export')
 }
 
+/**
+ * Converts raw dependency-cruiser output into the app's internal graph representation:
+ * forward and reverse adjacency maps, per-module metadata (circular references, barrel
+ * detection), and per-edge flags (e.g. dynamic imports). npm and core dependencies are
+ * filtered out.
+ */
 export function transformGraph(cruiseResult: ICruiseResult): GraphData {
   const forward = new Map<string, string[]>()
   const reverse = new Map<string, string[]>()

@@ -6,6 +6,9 @@ export type BuildGraphOptions = {
   cwd?: string
 }
 
+/**
+ * Crawls the module graph starting from the given file paths using dependency-cruiser.
+ */
 export async function buildGraph(
   filePaths: string[],
   options: BuildGraphOptions = {},

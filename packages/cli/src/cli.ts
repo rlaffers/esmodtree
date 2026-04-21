@@ -16,6 +16,10 @@ import { reverseTree } from '~/traverse/reverse'
 import { traverseUp } from '~/traverse/up'
 import type { ProjectType } from '~/detect/project'
 
+/**
+ * Produces per-module markers (e.g. route entry point, barrel) used to annotate
+ * nodes in the output tree.
+ */
 function buildMarkers(projectType: ProjectType, graphData: GraphData): Map<string, ModuleMarker[]> {
   const modulePaths = [...graphData.adjacencyMaps.forward.keys()]
   const rootMarkers = detectRootMarkers(projectType, modulePaths)

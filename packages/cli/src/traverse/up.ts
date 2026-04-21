@@ -7,6 +7,12 @@ export type TraverseOptions = {
   exclude?: RegExp
 }
 
+/**
+ * Builds an importer tree by walking the reverse adjacency map from a target file
+ * up through all its direct and transitive importers. Each node is annotated with
+ * markers (barrel, dynamic import, route entry point, etc.) and circular back-edges
+ * are detected and short-circuited.
+ */
 export function traverseUp(
   startFile: string,
   reverse: Map<string, string[]>,
