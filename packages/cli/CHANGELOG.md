@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.0.0...@esmodtree/cli@1.1.0) (2026-04-21)
+
+
+### Features
+
+* **cli:** add a --symbol option ([eb2e425](https://github.com/rlaffers/esmodtree/commit/eb2e42501556ca18cf3240326934b4d0b8a760e4))
+
 # 1.0.0 (2026-04-17)
 
 

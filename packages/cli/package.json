@@ -1,6 +1,6 @@
 {
   "name": "@esmodtree/cli",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "ES module import tree visualizer for the command line",
   "type": "module",
   "bin": {
