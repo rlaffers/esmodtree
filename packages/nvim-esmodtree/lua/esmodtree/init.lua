@@ -1,6 +1,6 @@
 local M = {}
 
-local SUBCOMMANDS = { "check", "down", "up", "install" }
+local SUBCOMMANDS = { "check", "down", "updown", "up", "install" }
 
 function M.setup(opts)
   opts = opts or {}
@@ -14,7 +14,7 @@ function M.dispatch(subcmd)
     require("esmodtree.check").run()
   elseif subcmd == "install" then
     require("esmodtree.install").run()
-  elseif subcmd == "down" or subcmd == "up" then
+  elseif subcmd == "down" or subcmd == "updown" or subcmd == "up" then
     require("esmodtree.runner").run(subcmd)
   else
     vim.notify("Esmodtree: unknown command '" .. subcmd .. "'", vim.log.levels.ERROR)

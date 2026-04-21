@@ -88,7 +88,7 @@ describe("esmodtree.runner", function()
       assert.equals("--no-color", cmd[4])
     end)
 
-    it("executes esmodtree --up <path> --no-color for up subcommand", function()
+    it("executes esmodtree --updown <path> --no-color for updown subcommand", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
@@ -96,12 +96,12 @@ describe("esmodtree.runner", function()
       local system_calls, restore_system = h.stub_system()
       table.insert(cleanups, restore_system)
 
-      runner.run("up")
+      runner.run("updown")
 
       assert.equals(1, #system_calls)
       local cmd = system_calls[1].cmd
       assert.is_truthy(cmd[1]:find("esmodtree"))
-      assert.equals("--up", cmd[2])
+      assert.equals("--updown", cmd[2])
       assert.equals("/project/src/index.ts", cmd[3])
       assert.equals("--no-color", cmd[4])
     end)
