@@ -5,7 +5,9 @@ local M = {}
 local NOTIFY_TITLE = "Esmodtree"
 local notify_id = "esmodtree_runner"
 
---- Open a centered floating window with the given lines.
+--- Open a floating window near the cursor with the given lines.
+--- The float is placed below the cursor when it is in the upper half of the
+--- window, and above it otherwise. The left border aligns with the cursor column.
 local function open_float(lines)
   -- Compute content dimensions
   local max_line_width = 0
@@ -26,6 +28,44 @@ local function open_float(lines)
   width = math.max(width, 1)
   height = math.max(height, 1)
 
+  -- Determine cursor position within the visible window
+  local win_line = vim.fn.winline() -- 1-indexed row within window
+  local win_height = vim.api.nvim_win_get_height(0)
+  local show_below = win_line <= math.floor(win_height / 2)
+
+  -- Clip height to available space in the chosen direction.
+  -- screen_row is the 1-indexed row of the cursor on the entire screen.
+  local screen_row = vim.fn.screenrow()
+  if show_below then
+    -- Space below: from line after cursor to bottom, minus 1 for cmdline and 2 for borders
+    local space_below = vim.o.lines - screen_row - 3
+    height = math.max(math.min(height, space_below), 1)
+  else
+    -- Space above: from top to line before cursor, minus 2 for borders
+    local space_above = screen_row - 3
+    height = math.max(math.min(height, space_above), 1)
+  end
+
+  -- Vertical offset (relative = "cursor"; border drawn outside content area)
+  -- Below: top border on line below cursor → row = 2
+  -- Above: bottom border on line above cursor → row = -(height + 1)
+  local row = show_below and 1 or -(height + 2)
+
+  -- Horizontal offset: left border at cursor column → col = 1
+  -- Shift left if the float would overflow the right edge of the screen.
+  local screen_col = vim.fn.screencol() -- 1-indexed cursor screen column
+  local float_visual_width = width + 2 -- content + left/right borders
+  local col = 1
+  local overflow = (screen_col - 1) + float_visual_width - vim.o.columns
+  if overflow > 0 then
+    col = col - overflow
+    -- Clamp so the left border doesn't go off the left edge.
+    -- With relative="cursor", absolute screen col of left border = (screen_col - 1) + (col - 1).
+    -- We need that >= 0.
+    local min_col = -(screen_col - 2)
+    col = math.max(col, min_col)
+  end
+
   -- Create scratch buffer
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -33,12 +73,8 @@ local function open_float(lines)
   vim.bo[buf].modifiable = false
   vim.bo[buf].bufhidden = "wipe"
 
-  -- Center the window
-  local row = math.floor((vim.o.lines - height) / 2)
-  local col = math.floor((vim.o.columns - width) / 2)
-
   local win = vim.api.nvim_open_win(buf, true, {
-    relative = "editor",
+    relative = "cursor",
     width = width,
     height = height,
     row = row,
