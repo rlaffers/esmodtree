@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.1.0...@esmodtree/cli@1.2.0) (2026-04-21)
+
+
+### Features
+
+* **nvim:** add internal mappings for sending symbols to cli ([b8e0031](https://github.com/rlaffers/esmodtree/commit/b8e0031e9e0f3d172f6aba27edfca0e1805a8cff))
+
 # [1.1.0](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.0.0...@esmodtree/cli@1.1.0) (2026-04-21)
 
 
