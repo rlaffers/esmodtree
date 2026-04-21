@@ -85,11 +85,7 @@ function M.run(subcmd)
   vim.system({ bin, "--" .. subcmd, filepath, "--no-color" }, {}, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
-        vim.notify(
-          "Esmodtree: " .. (result.stderr or "unknown error"),
-          vim.log.levels.ERROR,
-          { replace = notify_id }
-        )
+        vim.notify("Esmodtree: " .. (result.stderr or "unknown error"), vim.log.levels.ERROR, { replace = notify_id })
         return
       end
 

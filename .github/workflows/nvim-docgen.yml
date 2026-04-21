@@ -8,8 +8,6 @@ on:
 
 jobs:
   docs:
-    # TODO: enable when ready
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +15,9 @@ jobs:
         uses: kdheepak/panvimdoc@main
         with:
           vimdoc: esmodtree
-          version: 'Neovim >= 0.8.0'
+          description: 'Neovim plugin for visualizing ECMAScript module import trees.'
+          version: 'Neovim >= 0.10.0'
+          toc: true
           demojify: true
           treesitter: true
           pandoc: packages/nvim-esmodtree/README.md
