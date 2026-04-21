@@ -13,7 +13,8 @@ Existing tools either produce complex graphical output (dependency-cruiser's dot
 
 Build `esmodtree`, a command line tool that generates `tree`-style ASCII dependency trees for TypeScript/JavaScript projects. It operates in two modes:
 
-- **`--up <file>`**: Shows all ancestors (importers) of a module, recursively, as a tree rooted at the target file with branches going upward through the import chain. Root modules (Next.js pages, entry points) are flagged.
+- **`--updown <file>`**: Shows all ancestors (importers) of a module, recursively, as a tree rooted at the target file with branches going upward through the import chain. Root modules (Next.js pages, entry points) are flagged.
+- **`--up <file>`**: Shows the same importer tree but reversed, with ancestors on top.
 - **`--down <file>`**: Shows all descendants (dependencies) of a module, recursively, as a standard dependency tree.
 
 The tool uses dependency-cruiser's battle-tested programmatic API as its parsing/resolution engine, and adds a focused UX layer on top: tree-style output, project type detection, root module labeling, barrel file detection, and simplified CLI ergonomics.
@@ -21,7 +22,7 @@ The tool uses dependency-cruiser's battle-tested programmatic API as its parsing
 ### Example Output
 
 ```
-esmodtree --up components/MyButton.tsx
+esmodtree --updown components/MyButton.tsx
 
 components/MyButton.tsx
 ├── features/checkout/CheckoutForm.tsx
@@ -52,7 +53,7 @@ pages/dashboard.tsx [page]
 
 ## User Stories
 
-1. As a developer, I want to run `esmodtree --up components/MyButton.tsx` and see a tree of all modules that import MyButton (directly or transitively), so that I can understand the impact surface of changing that component.
+1. As a developer, I want to run `esmodtree --updown components/MyButton.tsx` and see a tree of all modules that import MyButton (directly or transitively), so that I can understand the impact surface of changing that component.
 2. As a developer, I want to run `esmodtree --down pages/dashboard.tsx` and see a tree of all modules that dashboard.tsx depends on (directly or transitively), so that I can understand the full dependency chain of a page.
 3. As a developer, I want root modules (Next.js pages, layouts, entry points) to be visually flagged with markers like `[page]`, `[layout]`, or `[entry]`, so that I can immediately see where ancestor chains terminate at meaningful boundaries.
 4. As a developer, I want barrel files (index.ts files that only re-export) to be flagged with `[barrel]`, so that I can distinguish pass-through modules from modules with actual logic.
@@ -69,9 +70,9 @@ pages/dashboard.tsx [page]
 15. As a developer working on a generic TypeScript project, I want `src/index.ts`, `src/main.ts`, or the file referenced by `package.json#main`/`package.json#exports` to be detected as entry points and flagged with `[entry]`.
 16. As a developer, I want to install the tool globally via `npm install -g @esmodtree/cli` or run it via `npx @esmodtree/cli`, so that I can use it across multiple projects.
 17. As a developer, I want the tool to only show project-internal modules by default (excluding node_modules), so that the output focuses on my own code.
-18. As a developer, I want the `--up` tree to be a single tree rooted at my target file with multiple branches (one per importer chain), so that I can see the full picture in one view.
+18. As a developer, I want the `--updown` tree to be a single tree rooted at my target file with multiple branches (one per importer chain), so that I can see the full picture in one view.
 19. As a developer, I want the tool to override the tsconfig path with `--tsconfig <path>`, so that I can point to a non-standard tsconfig location.
-20. As a developer, I want the tool to auto-detect the source directories to scan (from tsconfig `include`/`exclude`, or fallback to common patterns like `src/`, `app/`, `pages/`, `components/`, `lib/`), so that `--up` mode scans the right scope without manual configuration.
+20. As a developer, I want the tool to auto-detect the source directories to scan (from tsconfig `include`/`exclude`, or fallback to common patterns like `src/`, `app/`, `pages/`, `components/`, `lib/`), so that `--updown` mode scans the right scope without manual configuration.
 21. As a developer, I want colored output by default (with a `--no-color` flag to disable), so that markers like `[page]`, `[circular]`, `[barrel]`, `[dynamic]` are visually distinct.
 
 ## Implementation Decisions
@@ -125,11 +126,11 @@ The tool uses dependency-cruiser's programmatic `cruise()` API as its parsing an
 
 The codebase is decomposed into modules that maximize testability by separating I/O from pure logic:
 
-**GraphBuilder** (`graph/buildGraph.ts`): Thin wrapper around dependency-cruiser's `cruise()` function. Configures dep-cruiser with the correct tsconfig, include/exclude patterns, and scope. For `--down`, it cruises just the target file. For `--up`, it cruises the full project source directories. This is the only module with a hard dependency on dependency-cruiser.
+**GraphBuilder** (`graph/buildGraph.ts`): Thin wrapper around dependency-cruiser's `cruise()` function. Configures dep-cruiser with the correct tsconfig, include/exclude patterns, and scope. For `--down`, it cruises just the target file. For `--updown`, it cruises the full project source directories. This is the only module with a hard dependency on dependency-cruiser.
 
 **GraphTransformer** (`graph/transform.ts`): Pure function. Converts dependency-cruiser's flat `{source, dependencies[]}[]` output into two adjacency maps (forward: module -> its dependencies; reverse: module -> its importers) plus per-module metadata (isBarrel, isDynamic). No I/O.
 
-**TreeTraverser** (`traverse/up.ts`, `traverse/down.ts`): Pure functions. Perform DFS on the adjacency maps to produce a `TreeNode` tree structure. Handle cycle detection (marking nodes as `[circular]` and truncating branches), depth limiting, and both traversal directions. The `--up` traverser walks the reverse adjacency map; the `--down` traverser walks the forward map.
+**TreeTraverser** (`traverse/up.ts`, `traverse/down.ts`): Pure functions. Perform DFS on the adjacency maps to produce a `TreeNode` tree structure. Handle cycle detection (marking nodes as `[circular]` and truncating branches), depth limiting, and both traversal directions. The `--updown` traverser walks the reverse adjacency map; the `--down` traverser walks the forward map.
 
 **ProjectDetector** (`detect/project.ts`): Detects the project type by checking for Next.js config files (`next.config.*`), reading tsconfig `include`/`exclude` to determine source directories, and falling back to common directory patterns (`src/`, `app/`, `pages/`, etc.). Also locates the tsconfig.json path.
 
@@ -155,7 +156,7 @@ The codebase is decomposed into modules that maximize testability by separating 
 
 ### Key Behaviors
 
-- **`--up` traversal scope**: Must cruise the full project source to discover all importers. Auto-detected from tsconfig `include`/`exclude` or common patterns. Overridable with `--root`.
+- **`--updown` traversal scope**: Must cruise the full project source to discover all importers. Auto-detected from tsconfig `include`/`exclude` or common patterns. Overridable with `--root`.
 - **`--down` traversal scope**: Only cruises the target file (dep-cruiser follows dependencies recursively from the entry point).
 - **node_modules excluded by default**: Uses dep-cruiser's `doNotFollow` to skip external dependencies.
 - **Barrel detection heuristic**: A module is flagged as `[barrel]` if its filename is `index.{ts,tsx,js,jsx}` and dependency-cruiser reports it primarily contains re-exports.
@@ -196,6 +197,6 @@ Small TypeScript project fixtures under `packages/cli/test/fixtures/` for integr
 
 ## Further Notes
 
-- **Performance for `--up`**: Since `--up` must cruise the entire project source, it will be slower on large codebases. dependency-cruiser's `--cache` option (which caches cruise results and invalidates on file change) should be leveraged. Users can also constrain scope with `--root`.
+- **Performance for `--updown`**: Since `--updown` must cruise the entire project source, it will be slower on large codebases. dependency-cruiser's `--cache` option (which caches cruise results and invalidates on file change) should be leveraged. Users can also constrain scope with `--root`.
 - **Programmatic API**: The `index.ts` export should expose the core functions (graph building, traversal, formatting) for programmatic use by other packages in the monorepo or external consumers. This is a future concern but the module separation already supports it.
 - **npm publishing**: The package will be published as `@esmodtree/cli` with a `bin` entry pointing to the built CLI. Users install via `npm install -g @esmodtree/cli` or run via `npx @esmodtree/cli`.

@@ -1,6 +1,6 @@
 # nvim-esmodtree
 
-Neovim plugin for visualizing ES module import trees. Wraps the
+Neovim plugin for visualizing ECMAScript module import trees. Wraps the
 [@esmodtree/cli](https://www.npmjs.com/package/@esmodtree/cli) package.
 
 ## Requirements
@@ -50,6 +50,9 @@ require("esmodtree").setup()
 
 " Show what imports the current file (importer tree)
 :Esmodtree up
+
+" Check if the plugin is properly installed and configured
+:Esmodtree check
 ```
 
 `:Esmodtree install` installs the CLI binary locally within the plugin directory. It prefers
