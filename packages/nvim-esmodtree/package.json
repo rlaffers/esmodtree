@@ -1,6 +1,10 @@
 {
   "name": "nvim-esmodtree",
   "private": true,
+  "scripts": {
+    "test": "make test",
+    "format:check": "stylua --check lua/"
+  },
   "dependencies": {
     "@esmodtree/cli": "0.1.1"
   }

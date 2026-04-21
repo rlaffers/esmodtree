@@ -10,9 +10,12 @@ Requires Neovim >= 0.10.
 
 ```sh
 # From packages/nvim-esmodtree/
-make test          # only test command; runs plenary busted suite via headless nvim
-stylua lua/        # format check/fix (CI uses stylua --check)
+pnpm test          # runs plenary busted suite via headless nvim (delegates to make test)
+pnpm format:check  # stylua --check lua/
+stylua lua/        # format fix
 ```
+
+From the monorepo root, `pnpm -r run test` and `pnpm -r run format:check` cover this package.
 
 `make test` expands to:
 
@@ -27,7 +30,7 @@ nvim --headless --noplugin -u tests/minimal_init.lua \
 
 - **Formatter**: StyLua — `.stylua.toml` (120 col, 2-space indent, `AutoPreferDouble` quotes). Not Prettier.
 - **Test framework**: plenary.nvim Busted runner
-- **No pnpm scripts** defined in `package.json`
+- **pnpm scripts**: `test` delegates to `make test`; `format:check` runs `stylua --check lua/`
 
 ## Architecture
 
