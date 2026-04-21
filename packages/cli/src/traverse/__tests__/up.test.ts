@@ -90,4 +90,41 @@ describe('traverseUp', () => {
     expect(tree.children).toHaveLength(1)
     expect(tree.children[0].path).toBe('a.ts')
   })
+
+  it('filters direct importers with importsSymbol callback', () => {
+    const reverse = new Map([
+      ['target.ts', ['uses-symbol.ts', 'no-symbol.ts']],
+      ['uses-symbol.ts', ['grandparent.ts']],
+      ['no-symbol.ts', []],
+      ['grandparent.ts', []],
+    ])
+
+    const tree = traverseUp('target.ts', reverse, {
+      importsSymbol: imp => imp === 'uses-symbol.ts',
+    })
+
+    expect(tree.children).toHaveLength(1)
+    expect(tree.children[0].path).toBe('uses-symbol.ts')
+    // Grandparent should still be traversed normally (no filter at depth > 1)
+    expect(tree.children[0].children).toHaveLength(1)
+    expect(tree.children[0].children[0].path).toBe('grandparent.ts')
+  })
+
+  it('does not apply importsSymbol at deeper levels', () => {
+    const reverse = new Map([
+      ['target.ts', ['a.ts']],
+      ['a.ts', ['b.ts', 'c.ts']],
+      ['b.ts', []],
+      ['c.ts', []],
+    ])
+
+    // Filter only passes 'a.ts' at depth 1, but b.ts and c.ts at depth 2 are unfiltered
+    const tree = traverseUp('target.ts', reverse, {
+      importsSymbol: imp => imp === 'a.ts',
+    })
+
+    expect(tree.children).toHaveLength(1)
+    expect(tree.children[0].path).toBe('a.ts')
+    expect(tree.children[0].children).toHaveLength(2)
+  })
 })

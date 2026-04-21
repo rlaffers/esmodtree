@@ -5,6 +5,12 @@ export type TraverseOptions = {
   dependencyMetadata?: DependencyMetadata
   depth?: number
   exclude?: RegExp
+  /**
+   * When set, filters direct importers of the start file (depth 1) to only
+   * those for which this callback returns true. Used by --symbol to keep only
+   * importers that actually import a specific named export.
+   */
+  importsSymbol?: (importerPath: string) => boolean
 }
 
 /**
@@ -18,7 +24,13 @@ export function traverseUp(
   reverse: Map<string, string[]>,
   options: TraverseOptions = {},
 ): TreeNode {
-  const { markers = new Map(), dependencyMetadata = new Map(), depth: maxDepth, exclude } = options
+  const {
+    markers = new Map(),
+    dependencyMetadata = new Map(),
+    depth: maxDepth,
+    exclude,
+    importsSymbol,
+  } = options
   const visited = new Set<string>()
 
   function walk(file: string, edgeMarkers: ModuleMarker[], currentDepth: number): TreeNode {
@@ -32,7 +44,11 @@ export function traverseUp(
     }
 
     visited.add(file)
-    const importers = (reverse.get(file) ?? []).filter(imp => !exclude || !exclude.test(imp))
+    let importers = (reverse.get(file) ?? []).filter(imp => !exclude || !exclude.test(imp))
+    // At depth 0→1 (direct importers of the start file), apply the symbol filter
+    if (currentDepth === 0 && importsSymbol) {
+      importers = importers.filter(imp => importsSymbol(imp))
+    }
     const children = importers.map(imp => {
       const depEdgeMarkers: ModuleMarker[] = []
       // In --updown mode, the edge goes from importer → file

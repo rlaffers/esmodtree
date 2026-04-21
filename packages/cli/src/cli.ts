@@ -11,6 +11,8 @@ import type { GraphData, ModuleMarker } from '~/graph/types'
 import { VERSION } from '~/index'
 import { formatJson } from '~/output/json'
 import { formatTree } from '~/output/tree'
+import { loadCompilerOptions } from '~/parse/compiler-options'
+import { fileImportsSymbol, getExportedSymbols } from '~/parse/symbols'
 import { traverseDown } from '~/traverse/down'
 import { reverseTree } from '~/traverse/reverse'
 import { traverseUp } from '~/traverse/up'
@@ -51,6 +53,7 @@ export function createProgram(): Command {
     .option('--exclude <pattern>', 'exclude modules matching regex pattern')
     .option('--json', 'output as JSON instead of tree')
     .option('--root <dir>', 'source directory for --updown scans (skips auto-detection)')
+    .option('--symbol <name>', 'filter by exported symbol name (use with --up or --updown)')
     .action(async options => {
       const down = options.down as string | undefined
       const updown = options.updown as string | undefined
@@ -62,10 +65,23 @@ export function createProgram(): Command {
       const excludePattern = options.exclude as string | undefined
       const jsonOutput = options.json as boolean | undefined
       const rootDir = options.root as string | undefined
+      const symbolName = options.symbol as string | undefined
       const exclude = excludePattern ? new RegExp(excludePattern) : undefined
 
       if (!down && !updown && !up) {
         program.help()
+        return
+      }
+
+      if (symbolName && down) {
+        console.error('--symbol can only be used with --up or --updown')
+        process.exitCode = 1
+        return
+      }
+
+      if (symbolName && !updown && !up) {
+        console.error('--symbol can only be used with --up or --updown')
+        process.exitCode = 1
         return
       }
 
@@ -141,6 +157,28 @@ export function createProgram(): Command {
           return
         }
 
+        // Validate --symbol: check the target file actually exports it
+        let importsSymbolFilter: ((importerPath: string) => boolean) | undefined
+        if (symbolName) {
+          const exported = getExportedSymbols(absTarget)
+          if (!exported.includes(symbolName)) {
+            console.error(`Symbol "${symbolName}" is not exported from ${targetFile}`)
+            process.exitCode = 1
+            return
+          }
+
+          const compilerOptions = loadCompilerOptions(tsConfigPath)
+          importsSymbolFilter = (importerRelPath: string) => {
+            const importerAbsPath = resolve(projectRoot, importerRelPath)
+            return fileImportsSymbol(importerAbsPath, absTarget, symbolName, compilerOptions)
+          }
+
+          if (debug) {
+            console.log('[debug] symbol:', symbolName)
+            console.log('[debug] exported symbols:', exported)
+          }
+        }
+
         const cruiseResult = await buildGraph(sourceDirs, {
           tsConfigPath: relTsConfigPath,
           cwd: projectRoot,
@@ -152,6 +190,7 @@ export function createProgram(): Command {
           dependencyMetadata: graphData.dependencyMetadata,
           depth: depthLimit,
           exclude,
+          importsSymbol: importsSymbolFilter,
         })
 
         if (up) {
