@@ -17,7 +17,7 @@ vi.mock('~/output/tree', () => ({
   formatTree: vi.fn().mockReturnValue(''),
 }))
 
-// Mock readFileSync for tsconfig reading in --up mode
+// Mock readFileSync for tsconfig reading in --updown mode
 vi.mock('node:fs', async importOriginal => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return {
@@ -68,7 +68,7 @@ describe('CLI --tsconfig flag', () => {
     })
   })
 
-  it('derives source dirs from tsconfig include for --up mode', async () => {
+  it('derives source dirs from tsconfig include for --updown mode', async () => {
     mockBuildGraph.mockClear()
     const program = createProgram()
     program.exitOverride()
@@ -76,7 +76,7 @@ describe('CLI --tsconfig flag', () => {
     await program.parseAsync([
       'node',
       'esmodtree',
-      '--up',
+      '--updown',
       'src/some/file.ts',
       '--tsconfig',
       'my/tsconfig.json',
@@ -135,7 +135,7 @@ describe('CLI --root flag', () => {
     const program = createProgram()
     program.exitOverride()
 
-    await program.parseAsync(['node', 'esmodtree', '--up', 'src/file.ts', '--root', 'src'])
+    await program.parseAsync(['node', 'esmodtree', '--updown', 'src/file.ts', '--root', 'src'])
 
     expect(program.opts().root).toBe('src')
   })

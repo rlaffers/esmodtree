@@ -1,0 +1,22 @@
+name: Setup mise with Lua build deps
+description: Installs Ubuntu packages required for building Lua via mise, then runs mise-action.
+
+inputs:
+  mise-cache:
+    description: Whether to enable mise-action cache
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Install system dependencies for Lua
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libreadline-dev
+
+    - name: Setup mise
+      uses: jdx/mise-action@v4
+      with:
+        cache: ${{ inputs.mise-cache }}

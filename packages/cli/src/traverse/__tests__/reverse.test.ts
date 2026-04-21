@@ -20,7 +20,7 @@ describe('reverseTree', () => {
   })
 
   it('returns a forest when the up-tree branches', () => {
-    // --up tree: Button.ts has two importers
+    // --updown tree: Button.ts has two importers
     const tree = node('button.ts', [
       node('index.ts', [node('app.ts', [node('entry.ts', [], ['entry'])])], ['barrel']),
       node('consumer.ts'),

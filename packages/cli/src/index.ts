@@ -1,4 +1,9 @@
-export const VERSION = '0.1.0'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const pkg: { version: string } = require('../package.json')
+
+export const VERSION = pkg.version
 
 export { detectProjectType, detectSourceDirs, ProjectType } from '~/detect/project'
 export { detectRootMarkers } from '~/detect/roots'

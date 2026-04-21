@@ -1,0 +1,32 @@
+name: nvim-docs
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'packages/nvim-esmodtree/**'
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: panvimdoc
+        uses: kdheepak/panvimdoc@main
+        with:
+          vimdoc: esmodtree
+          description: 'Neovim plugin for visualizing ECMAScript module import trees.'
+          version: 'Neovim >= 0.10.0'
+          toc: true
+          demojify: true
+          treesitter: true
+          pandoc: packages/nvim-esmodtree/README.md
+          docmappings: true
+      - name: Push changes
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: 'chore(ci): auto-generate vimdoc'
+          commit_user_name: 'github-actions[bot]'
+          commit_user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+          file_pattern: packages/nvim-esmodtree/doc/*

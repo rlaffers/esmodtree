@@ -76,6 +76,12 @@ importers:
         specifier: ^4.5.4
         version: 4.5.4(@types/node@25.6.0)(typescript@6.0.2)(vite@8.0.8(@types/node@25.6.0)(jiti@2.6.1))
 
+  packages/nvim-esmodtree:
+    dependencies:
+      '@esmodtree/cli':
+        specifier: 0.1.1
+        version: 0.1.1(typescript@6.0.2)
+
 packages:
 
   '@actions/core@3.0.0':
@@ -204,6 +210,12 @@ packages:
 
   '@emnapi/wasi-threads@1.2.1':
     resolution: {integrity: sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==}
+
+  '@esmodtree/cli@0.1.1':
+    resolution: {integrity: sha512-xFfs3TkaTW4x/9XoZvwqaDmwG1DKL73pjmPSi4uAbTIBTmA5SNYQvFgQzqHHzKpVrpbK+3nMqtmGH/r2Edv0Vw==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.0.0'
 
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
@@ -2717,6 +2729,13 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  '@esmodtree/cli@0.1.1(typescript@6.0.2)':
+    dependencies:
+      commander: 14.0.3
+      dependency-cruiser: 17.3.10
+      picocolors: 1.1.1
+      typescript: 6.0.2
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 

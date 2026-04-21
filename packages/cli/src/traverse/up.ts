@@ -29,7 +29,7 @@ export function traverseUp(
     const importers = (reverse.get(file) ?? []).filter(imp => !exclude || !exclude.test(imp))
     const children = importers.map(imp => {
       const depEdgeMarkers: ModuleMarker[] = []
-      // In --up mode, the edge goes from importer → file
+      // In --updown mode, the edge goes from importer → file
       // so check if importer dynamically imports this file
       if (dependencyMetadata.get(imp)?.get(file)?.dynamic) {
         depEdgeMarkers.push('dynamic')

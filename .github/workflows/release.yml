@@ -3,6 +3,8 @@ name: Release
 on:
   push:
     branches: [master]
+    paths:
+      - 'packages/cli/**'
 
 permissions:
   contents: write
@@ -14,12 +16,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: jdx/mise-action@v2
+      - uses: ./.github/actions/setup-mise-with-lua-deps
 
       - run: pnpm install --frozen-lockfile
 
