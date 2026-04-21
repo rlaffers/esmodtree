@@ -102,6 +102,7 @@ function M.run(subcmd)
       end
 
       open_float(lines)
+      vim.notify("", vim.log.levels.INFO, { replace = notify_id })
     end)
   end)
 end
