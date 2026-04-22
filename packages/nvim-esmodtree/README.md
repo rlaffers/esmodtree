@@ -39,6 +39,26 @@ command is registered automatically on startup via `plugin/esmodtree.lua`. Then 
 require("esmodtree").setup()
 ```
 
+## Configuration
+
+`setup()` accepts an options table:
+
+| Option       | Type      | Default | Description                                                    |
+| ------------ | --------- | ------- | -------------------------------------------------------------- |
+| `use_colors` | `boolean` | `true`  | Colorize file paths and markers in the floating window output. |
+
+Example:
+
+```lua
+require("esmodtree").setup({
+  use_colors = false,
+})
+```
+
+When `use_colors` is `false`, no highlight groups are registered and no
+extmarks are applied — both the float and the location list render as plain
+text.
+
 ## Usage
 
 ```vim
@@ -126,6 +146,32 @@ vim.keymap.set("n", "<leader>elS", "<Plug>(esmodtree-lupdown-symbol)")
 | `<Plug>(esmodtree-lupdown)`        | Show importer tree (target at root) in the location list                   |
 | `<Plug>(esmodtree-lup-symbol)`     | Loclist importer tree filtered to the symbol under cursor                  |
 | `<Plug>(esmodtree-lupdown-symbol)` | Loclist importer tree (target at root) filtered to the symbol under cursor |
+
+## Highlights
+
+Highlighting is only applied when `use_colors` is enabled (the default — see
+[Configuration](#configuration)). The floating window and the location list
+colorize each line by applying the following highlight
+groups. They are registered with `default = true`, so a colorscheme or your
+own `:highlight` overrides win:
+
+| Group                     | Default           | Applies to                      |
+| ------------------------- | ----------------- | ------------------------------- |
+| `EsmodtreeDir`            | `Comment`         | directory prefix of a file path |
+| `EsmodtreeFile`           | `bold`            | basename portion of a file path |
+| `EsmodtreeMarkerEntry`    | `DiagnosticOk`    | `[entry]` marker                |
+| `EsmodtreeMarkerPage`     | `Statement`       | `[page]` marker                 |
+| `EsmodtreeMarkerLayout`   | `Function`        | `[layout]` marker               |
+| `EsmodtreeMarkerBarrel`   | `Type`            | `[barrel]` marker               |
+| `EsmodtreeMarkerDynamic`  | `DiagnosticWarn`  | `[dynamic]` marker              |
+| `EsmodtreeMarkerCircular` | `DiagnosticError` | `[circular]` marker             |
+
+Example override:
+
+```lua
+vim.api.nvim_set_hl(0, "EsmodtreeFile", { fg = "#ffffff", bold = true })
+vim.api.nvim_set_hl(0, "EsmodtreeMarkerEntry", { link = "String" })
+```
 
 ## Running tests
 

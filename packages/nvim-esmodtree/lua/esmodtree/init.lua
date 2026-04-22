@@ -2,9 +2,22 @@ local M = {}
 
 local SUBCOMMANDS = { "check", "down", "updown", "up", "ldown", "lupdown", "lup", "install" }
 
---- @param opts? table
+--- @class esmodtree.Config
+--- @field use_colors boolean Whether to colorize the float window output
+
+--- @type esmodtree.Config
+local DEFAULTS = {
+  use_colors = true,
+}
+
+--- Active configuration. Populated with defaults so the plugin works
+--- correctly even when `setup()` is never called.
+--- @type esmodtree.Config
+M.config = vim.deepcopy(DEFAULTS)
+
+--- @param opts? esmodtree.Config
 function M.setup(opts)
-  opts = opts or {}
+  M.config = vim.tbl_deep_extend("force", vim.deepcopy(DEFAULTS), opts or {})
 
   -- Simple subcommand mappings
   vim.keymap.set("n", "<Plug>(esmodtree-down)", function()

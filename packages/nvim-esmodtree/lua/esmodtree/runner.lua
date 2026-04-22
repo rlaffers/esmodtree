@@ -1,4 +1,5 @@
 local util = require("esmodtree.util")
+local highlight = require("esmodtree.highlight")
 
 local M = {}
 
@@ -72,6 +73,13 @@ local function open_float(lines)
   -- Create scratch buffer
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+  local config = require("esmodtree").config or {}
+  if config.use_colors ~= false then
+    highlight.define_groups()
+    highlight.highlight_buffer(buf, lines)
+  end
+
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].modifiable = false
   vim.bo[buf].bufhidden = "wipe"
@@ -132,6 +140,65 @@ end
 -- Expose for testing
 M._render_loclist = render_loclist
 
+--- Tracks whether the BufWinEnter autocmd for loclist highlighting has been
+--- installed in this Neovim session. Idempotent guard -- the augroup itself
+--- uses `clear = true`, but re-creating on every :lopen is unnecessary work.
+--- @type boolean
+local loclist_augroup_installed = false
+
+--- Install a BufWinEnter autocmd that colorizes the quickfix buffer whenever
+--- a location list with our title is shown. Idempotent.
+local function ensure_loclist_highlighter()
+  if loclist_augroup_installed then
+    return
+  end
+  loclist_augroup_installed = true
+
+  local group = vim.api.nvim_create_augroup("EsmodtreeLoclist", { clear = true })
+  vim.api.nvim_create_autocmd("BufWinEnter", {
+    group = group,
+    callback = function(args)
+      local buf = args.buf
+      if not vim.api.nvim_buf_is_valid(buf) then
+        return
+      end
+      if vim.bo[buf].buftype ~= "quickfix" then
+        return
+      end
+
+      local win = vim.api.nvim_get_current_win()
+      local info = vim.fn.getloclist(win, { title = 1 })
+      -- Clear any stale marks from a prior Esmodtree list
+      vim.api.nvim_buf_clear_namespace(buf, highlight.ns, 0, -1)
+
+      if not info or info.title ~= NOTIFY_TITLE then
+        -- Not our list anymore; restore qf defaults so other plugins' lists
+        -- render with normal qf syntax when they reuse this buffer.
+        vim.bo[buf].syntax = "on"
+        return
+      end
+
+      -- Disable qf's builtin syntax on our buffer. qfFileName (linked to
+      -- Directory) matches our whole line because quickfixtextfunc strips
+      -- the `file|lnum col|` prefix -- leaving no `|` to stop the match.
+      -- Its blue fg would bleed through our extmarks (which set only bold).
+      vim.bo[buf].syntax = "off"
+
+      local config = require("esmodtree").config or {}
+      if config.use_colors == false then
+        return
+      end
+
+      highlight.define_groups()
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      highlight.highlight_buffer(buf, lines)
+    end,
+  })
+end
+
+-- Expose for testing
+M._ensure_loclist_highlighter = ensure_loclist_highlighter
+
 --- Open a location list populated with the given tree output lines.
 --- Each entry preserves the original line as display text. Selecting an
 --- entry jumps to the extracted file at line 1, column 1.
@@ -147,6 +214,8 @@ local function open_loclist(lines)
       text = line,
     })
   end
+
+  ensure_loclist_highlighter()
 
   vim.fn.setloclist(0, {}, " ", {
     title = NOTIFY_TITLE,

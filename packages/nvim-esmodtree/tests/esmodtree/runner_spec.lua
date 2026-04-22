@@ -43,8 +43,10 @@ describe("esmodtree.runner", function()
 
   before_each(function()
     cleanups = {}
+    package.loaded["esmodtree"] = nil
     package.loaded["esmodtree.runner"] = nil
     package.loaded["esmodtree.util"] = nil
+    package.loaded["esmodtree.highlight"] = nil
     runner = require("esmodtree.runner")
   end)
 
@@ -531,6 +533,115 @@ describe("esmodtree.runner", function()
       -- │   └── src/utils/helpers/constants.ts
       local line = "    \xe2\x94\x82   \xe2\x94\x82   \xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 src/utils/helpers/constants.ts"
       assert.equals("src/utils/helpers/constants.ts", runner._extract_path(line))
+    end)
+  end)
+
+  describe("use_colors option", function()
+    local function stub_ok_output(stdout)
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = stdout, stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+    end
+
+    local function float_extmark_count()
+      local win = find_float_win()
+      assert.is_not_nil(win)
+      local buf = vim.api.nvim_win_get_buf(win)
+      local ns = require("esmodtree.highlight").ns
+      return #vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, {})
+    end
+
+    it("applies highlights by default when setup() was never called", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      stub_ok_output("src/index.ts [entry]\n")
+
+      runner.run("down")
+      h.drain()
+
+      assert.is_true(float_extmark_count() > 0)
+    end)
+
+    it("applies highlights when setup({ use_colors = true })", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      require("esmodtree").setup({ use_colors = true })
+      stub_ok_output("src/index.ts [entry]\n")
+
+      runner.run("down")
+      h.drain()
+
+      assert.is_true(float_extmark_count() > 0)
+    end)
+
+    it("skips highlights when setup({ use_colors = false })", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      require("esmodtree").setup({ use_colors = false })
+      stub_ok_output("src/index.ts [entry]\n")
+
+      runner.run("down")
+      h.drain()
+
+      assert.equals(0, float_extmark_count())
+    end)
+
+    it("applies highlights when setup({}) omits the option", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      require("esmodtree").setup({})
+      stub_ok_output("src/index.ts [entry]\n")
+
+      runner.run("down")
+      h.drain()
+
+      assert.is_true(float_extmark_count() > 0)
+    end)
+    it("applies extmarks to the loclist qf buffer when use_colors is on", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts [entry]\nsrc/foo.ts\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+      table.insert(cleanups, function()
+        pcall(vim.cmd, "lclose")
+      end)
+
+      runner.run("down", nil, "loclist")
+      h.drain()
+
+      local qfbufnr = vim.fn.getloclist(0, { qfbufnr = 0 }).qfbufnr
+      assert.is_true(qfbufnr > 0)
+      local ns = require("esmodtree.highlight").ns
+      local marks = vim.api.nvim_buf_get_extmarks(qfbufnr, ns, 0, -1, {})
+      assert.is_true(#marks > 0)
+    end)
+
+    it("disables builtin qf syntax on the Esmodtree loclist buffer", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts [entry]\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+      table.insert(cleanups, function()
+        pcall(vim.cmd, "lclose")
+      end)
+
+      runner.run("down", nil, "loclist")
+      h.drain()
+
+      local qfbufnr = vim.fn.getloclist(0, { qfbufnr = 0 }).qfbufnr
+      assert.is_true(qfbufnr > 0)
+      assert.equals("off", vim.bo[qfbufnr].syntax)
     end)
   end)
 
