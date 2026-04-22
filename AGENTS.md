@@ -41,6 +41,10 @@ pnpm --filter @esmodtree/cli test       # vitest run
 - avoid use `any`
 - avoid type assertions
 
+## Lua Type Annotations
+
+Lua files (in `packages/nvim-esmodtree/`) use [LuaCATS](https://luals.github.io/wiki/annotations/) annotations (`---@`) for type safety. Annotate all public functions and non-trivial locals with `---@param`, `---@return`, `---@alias`, `---@type`, `---@class`/`---@field` as appropriate. Use `?` suffix for optional params. Namespace custom aliases with `esmodtree.` prefix.
+
 ## Commit Conventions
 
 - Use **conventional commits** format: `<type>(<scope>): <description>`

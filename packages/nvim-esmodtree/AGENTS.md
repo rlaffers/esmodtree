@@ -32,6 +32,18 @@ nvim --headless --noplugin -u tests/minimal_init.lua \
 - **Test framework**: plenary.nvim Busted runner
 - **pnpm scripts**: `test` delegates to `make test`; `format:check` runs `stylua --check lua/`
 
+## Type annotations
+
+Annotate all public module functions and non-trivial local functions with [LuaCATS](https://luals.github.io/wiki/annotations/) annotations (prefixed `---@`).
+
+- **`---@param name type`** for every function parameter. Append `?` for optional params: `---@param opts? table`.
+- **`---@return type`** for every function that returns a value.
+- **`---@alias Name type`** to define reusable types, especially string literal unions: `---@alias esmodtree.Display "float"|"loclist"`.
+- **`---@type type`** for non-obvious local/module-level variables.
+- **`---@class`** / **`---@field`** when defining table structures used as types.
+- Namespace custom aliases with `esmodtree.` prefix (e.g. `esmodtree.Display`) to avoid collisions.
+- Private-but-exposed-for-testing fields use `_` prefix by convention (e.g. `M._extract_path`).
+
 ## Architecture
 
 - `plugin/esmodtree.lua` — Neovim autoloads this at startup; registers `:Esmodtree` user command
