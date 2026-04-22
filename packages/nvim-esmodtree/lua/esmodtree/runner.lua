@@ -116,6 +116,22 @@ end
 -- Expose for testing
 M._extract_path = extract_path
 
+--- Render loclist entries as the raw tree text only, hiding the default
+--- "filename|lnum col col| text" prefix so tree-drawing characters align.
+--- @param info table Neovim quickfix text function info
+--- @return string[]
+local function render_loclist(info)
+  local entries = vim.fn.getloclist(info.winid, { id = info.id, items = 1 }).items
+  local out = {}
+  for i = info.start_idx, info.end_idx do
+    table.insert(out, entries[i].text)
+  end
+  return out
+end
+
+-- Expose for testing
+M._render_loclist = render_loclist
+
 --- Open a location list populated with the given tree output lines.
 --- Each entry preserves the original line as display text. Selecting an
 --- entry jumps to the extracted file at line 1, column 1.
@@ -132,7 +148,11 @@ local function open_loclist(lines)
     })
   end
 
-  vim.fn.setloclist(0, {}, " ", { title = NOTIFY_TITLE, items = items })
+  vim.fn.setloclist(0, {}, " ", {
+    title = NOTIFY_TITLE,
+    items = items,
+    quickfixtextfunc = render_loclist,
+  })
   vim.cmd("lopen")
 end
 

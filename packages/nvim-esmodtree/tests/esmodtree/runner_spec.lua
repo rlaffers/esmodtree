@@ -533,4 +533,27 @@ describe("esmodtree.runner", function()
       assert.equals("src/utils/helpers/constants.ts", runner._extract_path(line))
     end)
   end)
+
+  describe("_render_loclist", function()
+    it("renders only the entry text, omitting filename/lnum/col prefix", function()
+      local tree_line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/components/index.ts [barrel]"
+      vim.fn.setloclist(0, {}, " ", {
+        title = "Esmodtree",
+        items = {
+          { filename = "src/index.ts", lnum = 1, col = 1, text = "src/index.ts [entry]" },
+          { filename = "src/components/index.ts", lnum = 1, col = 1, text = tree_line },
+        },
+      })
+      local info = vim.fn.getloclist(0, { id = 0, winid = 0 })
+      local rendered = runner._render_loclist({
+        winid = 0,
+        id = info.id,
+        start_idx = 1,
+        end_idx = 2,
+      })
+      assert.equals(2, #rendered)
+      assert.equals("src/index.ts [entry]", rendered[1])
+      assert.equals(tree_line, rendered[2])
+    end)
+  end)
 end)
