@@ -227,7 +227,7 @@ describe("esmodtree.runner", function()
       -- Neovim returns border as a table of characters for named styles
       local rounded_chars = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" }
       assert.same(rounded_chars, config.border)
-      assert.equals("Esmodtree", config.title[1][1])
+      assert.equals(" 🔎 Dependency tree ⇩ ", config.title[1][1])
       assert.equals("center", config.title_pos)
     end)
 
@@ -467,7 +467,7 @@ describe("esmodtree.runner", function()
       assert.equals(tree_line, items[1].text)
     end)
 
-    it("loclist title is Esmodtree", function()
+    it("loclist title reflects subcommand", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
@@ -481,7 +481,43 @@ describe("esmodtree.runner", function()
       h.drain()
 
       local info = vim.fn.getloclist(0, { title = 1 })
-      assert.equals("Esmodtree", info.title)
+      assert.equals(" 🔎 Dependency tree ⇩ ", info.title)
+    end)
+
+    it("float title includes (symbol) suffix when symbol is provided", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+
+      runner.run("up", "foo")
+      h.drain()
+
+      local win = find_float_win()
+      assert.is_not_nil(win)
+      local config = vim.api.nvim_win_get_config(win)
+      assert.equals(" 🔎 Importer tree ⇧ (foo) ", config.title[1][1])
+    end)
+
+    it("loclist title includes (symbol) suffix when symbol is provided", function()
+      local _, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+
+      runner.run("up", "foo", "loclist")
+      h.drain()
+
+      local info = vim.fn.getloclist(0, { title = 1 })
+      assert.equals(" 🔎 Importer tree ⇧ (foo) ", info.title)
     end)
   end)
 
@@ -531,7 +567,8 @@ describe("esmodtree.runner", function()
 
     it("extracts path from a line with only │ continuation characters", function()
       -- │   └── src/utils/helpers/constants.ts
-      local line = "    \xe2\x94\x82   \xe2\x94\x82   \xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 src/utils/helpers/constants.ts"
+      local line =
+        "    \xe2\x94\x82   \xe2\x94\x82   \xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 src/utils/helpers/constants.ts"
       assert.equals("src/utils/helpers/constants.ts", runner._extract_path(line))
     end)
   end)

@@ -5,14 +5,60 @@ local M = {}
 
 --- @alias esmodtree.Display "float"|"loclist"
 
-local NOTIFY_TITLE = "Esmodtree"
+--- Titles keyed by subcommand. Used both when creating the float/loclist
+--- and when the BufWinEnter autocmd decides whether a quickfix buffer is
+--- one of ours and should receive Esmodtree highlighting.
+--- @type table<string, string>
+local TITLES = {
+  up = " 🔎 Importer tree ⇧ ",
+  updown = " 🔎 Importer tree (rev) ⇧ ",
+  down = " 🔎 Dependency tree ⇩ ",
+}
+local FALLBACK_TITLE = " Esmodtree "
 local notify_id = "esmodtree_runner"
+
+--- Resolve the display title for a given subcommand. When `symbol` is a
+--- non-empty string, appends a "(symbol) " suffix to the base title.
+--- @param subcmd string
+--- @param symbol? string
+--- @return string
+local function title_for(subcmd, symbol)
+  local base = TITLES[subcmd] or FALLBACK_TITLE
+  if symbol and symbol ~= "" then
+    return base .. "(" .. symbol .. ") "
+  end
+  return base
+end
+
+--- Return true when `t` is one of Esmodtree's known titles -- either an exact
+--- match against a value in `TITLES` / `FALLBACK_TITLE`, or a `<base>(symbol) `
+--- form where `<base>` is one of `TITLES`.
+--- @param t string?
+--- @return boolean
+local function is_esmodtree_title(t)
+  if t == nil then
+    return false
+  end
+  if t == FALLBACK_TITLE then
+    return true
+  end
+  for _, base in pairs(TITLES) do
+    if t == base then
+      return true
+    end
+    if vim.startswith(t, base .. "(") and t:sub(-2) == ") " then
+      return true
+    end
+  end
+  return false
+end
 
 --- Open a floating window near the cursor with the given lines.
 --- The float is placed below the cursor when it is in the upper half of the
 --- window, and above it otherwise. The left border aligns with the cursor column.
 --- @param lines string[]
-local function open_float(lines)
+--- @param title string
+local function open_float(lines, title)
   -- Compute content dimensions
   local max_line_width = 0
   for _, line in ipairs(lines) do
@@ -92,7 +138,7 @@ local function open_float(lines)
     col = col,
     border = "rounded",
     style = "minimal",
-    title = NOTIFY_TITLE,
+    title = title,
     title_pos = "center",
   })
 
@@ -171,7 +217,7 @@ local function ensure_loclist_highlighter()
       -- Clear any stale marks from a prior Esmodtree list
       vim.api.nvim_buf_clear_namespace(buf, highlight.ns, 0, -1)
 
-      if not info or info.title ~= NOTIFY_TITLE then
+      if not info or not is_esmodtree_title(info.title) then
         -- Not our list anymore; restore qf defaults so other plugins' lists
         -- render with normal qf syntax when they reuse this buffer.
         vim.bo[buf].syntax = "on"
@@ -203,7 +249,8 @@ M._ensure_loclist_highlighter = ensure_loclist_highlighter
 --- Each entry preserves the original line as display text. Selecting an
 --- entry jumps to the extracted file at line 1, column 1.
 --- @param lines string[]
-local function open_loclist(lines)
+--- @param title string
+local function open_loclist(lines, title)
   local items = {}
   for _, line in ipairs(lines) do
     local path = extract_path(line)
@@ -218,7 +265,7 @@ local function open_loclist(lines)
   ensure_loclist_highlighter()
 
   vim.fn.setloclist(0, {}, " ", {
-    title = NOTIFY_TITLE,
+    title = title,
     items = items,
     quickfixtextfunc = render_loclist,
   })
@@ -284,9 +331,9 @@ function M.run(subcmd, symbol, display)
       end
 
       if display == "loclist" then
-        open_loclist(lines)
+        open_loclist(lines, title_for(subcmd, symbol))
       else
-        open_float(lines)
+        open_float(lines, title_for(subcmd, symbol))
       end
       vim.notify("", vim.log.levels.INFO, { replace = notify_id })
     end)

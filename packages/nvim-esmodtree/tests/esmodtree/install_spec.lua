@@ -163,13 +163,19 @@ describe("esmodtree.install", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, h.stub_executable({ node = 1 }))
-      table.insert(cleanups, h.stub_filereadable({
-        [".env"] = 1,
-        ["cli.js"] = 1,
-      }))
-      table.insert(cleanups, h.stub_readfile({
-        [".env"] = { "USE_LOCAL_CLI=true" },
-      }))
+      table.insert(
+        cleanups,
+        h.stub_filereadable({
+          [".env"] = 1,
+          ["cli.js"] = 1,
+        })
+      )
+      table.insert(
+        cleanups,
+        h.stub_readfile({
+          [".env"] = { "USE_LOCAL_CLI=true" },
+        })
+      )
       local mkdir_calls, restore_mkdir = h.stub_mkdir()
       table.insert(cleanups, restore_mkdir)
       local write_calls, restore_writefile = h.stub_writefile()
@@ -209,13 +215,19 @@ describe("esmodtree.install", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, h.stub_executable({ node = 1 }))
-      table.insert(cleanups, h.stub_filereadable({
-        [".env"] = 1,
-        ["cli.js"] = 0,
-      }))
-      table.insert(cleanups, h.stub_readfile({
-        [".env"] = { "USE_LOCAL_CLI=true" },
-      }))
+      table.insert(
+        cleanups,
+        h.stub_filereadable({
+          [".env"] = 1,
+          ["cli.js"] = 0,
+        })
+      )
+      table.insert(
+        cleanups,
+        h.stub_readfile({
+          [".env"] = { "USE_LOCAL_CLI=true" },
+        })
+      )
 
       install.run()
 
@@ -229,13 +241,19 @@ describe("esmodtree.install", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, h.stub_executable({ node = 1 }))
-      table.insert(cleanups, h.stub_filereadable({
-        [".env"] = 1,
-        ["cli.js"] = 1,
-      }))
-      table.insert(cleanups, h.stub_readfile({
-        [".env"] = { "USE_LOCAL_CLI=true" },
-      }))
+      table.insert(
+        cleanups,
+        h.stub_filereadable({
+          [".env"] = 1,
+          ["cli.js"] = 1,
+        })
+      )
+      table.insert(
+        cleanups,
+        h.stub_readfile({
+          [".env"] = { "USE_LOCAL_CLI=true" },
+        })
+      )
       table.insert(cleanups, select(2, h.stub_mkdir()))
       table.insert(cleanups, select(2, h.stub_writefile()))
       local _, restore_system = h.stub_system({
@@ -255,13 +273,19 @@ describe("esmodtree.install", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, h.stub_executable({ node = 1 }))
-      table.insert(cleanups, h.stub_filereadable({
-        [".env"] = 1,
-        ["cli.js"] = 1,
-      }))
-      table.insert(cleanups, h.stub_readfile({
-        [".env"] = { "USE_LOCAL_CLI=true" },
-      }))
+      table.insert(
+        cleanups,
+        h.stub_filereadable({
+          [".env"] = 1,
+          ["cli.js"] = 1,
+        })
+      )
+      table.insert(
+        cleanups,
+        h.stub_readfile({
+          [".env"] = { "USE_LOCAL_CLI=true" },
+        })
+      )
       table.insert(cleanups, select(2, h.stub_mkdir()))
       table.insert(cleanups, select(2, h.stub_writefile()))
       local _, restore_system = h.stub_system({
