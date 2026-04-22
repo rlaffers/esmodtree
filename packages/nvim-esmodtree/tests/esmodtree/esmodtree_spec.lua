@@ -12,6 +12,11 @@ local PLUG_MAPPINGS = {
   "<Plug>(esmodtree-updown)",
   "<Plug>(esmodtree-up-symbol)",
   "<Plug>(esmodtree-updown-symbol)",
+  "<Plug>(esmodtree-ldown)",
+  "<Plug>(esmodtree-lup)",
+  "<Plug>(esmodtree-lupdown)",
+  "<Plug>(esmodtree-lup-symbol)",
+  "<Plug>(esmodtree-lupdown-symbol)",
 }
 
 describe("esmodtree", function()
@@ -146,11 +151,12 @@ describe("esmodtree", function()
       local plugin = require("esmodtree")
       plugin.setup()
 
-      local called_subcmd, called_symbol
+      local called_subcmd, called_symbol, called_display
       package.loaded["esmodtree.runner"] = {
-        run = function(subcmd, symbol)
+        run = function(subcmd, symbol, display)
           called_subcmd = subcmd
           called_symbol = symbol
+          called_display = display
         end,
       }
 
@@ -158,6 +164,66 @@ describe("esmodtree", function()
 
       assert.equals("updown", called_subcmd)
       assert.equals("MyButton", called_symbol)
+    end)
+
+    it("dispatches ldown to runner with loclist display", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      local called_subcmd, called_symbol, called_display
+      package.loaded["esmodtree.runner"] = {
+        run = function(subcmd, symbol, display)
+          called_subcmd = subcmd
+          called_symbol = symbol
+          called_display = display
+        end,
+      }
+
+      plugin.dispatch({ "ldown" })
+
+      assert.equals("down", called_subcmd)
+      assert.is_nil(called_symbol)
+      assert.equals("loclist", called_display)
+    end)
+
+    it("dispatches lup to runner with loclist display", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      local called_subcmd, called_symbol, called_display
+      package.loaded["esmodtree.runner"] = {
+        run = function(subcmd, symbol, display)
+          called_subcmd = subcmd
+          called_symbol = symbol
+          called_display = display
+        end,
+      }
+
+      plugin.dispatch({ "lup" })
+
+      assert.equals("up", called_subcmd)
+      assert.is_nil(called_symbol)
+      assert.equals("loclist", called_display)
+    end)
+
+    it("dispatches lupdown with symbol to runner with loclist display", function()
+      local plugin = require("esmodtree")
+      plugin.setup()
+
+      local called_subcmd, called_symbol, called_display
+      package.loaded["esmodtree.runner"] = {
+        run = function(subcmd, symbol, display)
+          called_subcmd = subcmd
+          called_symbol = symbol
+          called_display = display
+        end,
+      }
+
+      plugin.dispatch({ "lupdown", "MyButton" })
+
+      assert.equals("updown", called_subcmd)
+      assert.equals("MyButton", called_symbol)
+      assert.equals("loclist", called_display)
     end)
   end)
 
@@ -172,6 +238,9 @@ describe("esmodtree", function()
       assert.is_truthy(vim.tbl_contains(completions, "up"))
       assert.is_truthy(vim.tbl_contains(completions, "install"))
       assert.is_truthy(vim.tbl_contains(completions, "check"))
+      assert.is_truthy(vim.tbl_contains(completions, "ldown"))
+      assert.is_truthy(vim.tbl_contains(completions, "lup"))
+      assert.is_truthy(vim.tbl_contains(completions, "lupdown"))
     end)
   end)
 end)

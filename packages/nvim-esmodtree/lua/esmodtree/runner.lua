@@ -2,12 +2,15 @@ local util = require("esmodtree.util")
 
 local M = {}
 
+--- @alias esmodtree.Display "float"|"loclist"
+
 local NOTIFY_TITLE = "Esmodtree"
 local notify_id = "esmodtree_runner"
 
 --- Open a floating window near the cursor with the given lines.
 --- The float is placed below the cursor when it is in the upper half of the
 --- window, and above it otherwise. The left border aligns with the cursor column.
+--- @param lines string[]
 local function open_float(lines)
   -- Compute content dimensions
   local max_line_width = 0
@@ -96,9 +99,51 @@ local function open_float(lines)
   vim.keymap.set("n", "<Esc>", close, { buffer = buf, nowait = true })
 end
 
+--- Extract a file path from a tree output line by stripping leading
+--- box-drawing characters (U+2500 ─, U+2502 │, U+251C ├, U+2514 └,
+--- U+2550 ═) and whitespace, then returning the first non-space token.
+--- Returns "" when no path can be extracted.
+--- @param line string
+--- @return string
+local function extract_path(line)
+  -- Box-drawing chars used by the CLI are 3-byte UTF-8 sequences in the
+  -- range \xe2\x94\x80 – \xe2\x95\x90. Strip those bytes plus ASCII spaces.
+  local stripped = line:gsub("[\xe2][\x94\x95][\x80-\xbf]", ""):gsub("^ +", "")
+  local token = stripped:match("(%S+)")
+  return token or ""
+end
+
+-- Expose for testing
+M._extract_path = extract_path
+
+--- Open a location list populated with the given tree output lines.
+--- Each entry preserves the original line as display text. Selecting an
+--- entry jumps to the extracted file at line 1, column 1.
+--- @param lines string[]
+local function open_loclist(lines)
+  local items = {}
+  for _, line in ipairs(lines) do
+    local path = extract_path(line)
+    table.insert(items, {
+      filename = path,
+      lnum = 1,
+      col = 1,
+      text = line,
+    })
+  end
+
+  vim.fn.setloclist(0, {}, " ", { title = NOTIFY_TITLE, items = items })
+  vim.cmd("lopen")
+end
+
 --- Run the CLI with the given subcommand for the current buffer.
 --- When `symbol` is provided, appends `--symbol <name>` to the CLI command.
-function M.run(subcmd, symbol)
+--- `display` is "float" (default) or "loclist".
+--- @param subcmd string
+--- @param symbol? string
+--- @param display? esmodtree.Display
+function M.run(subcmd, symbol, display)
+  display = display or "float"
   local plugin_root = util.get_plugin_root()
   local bin = util.bin_path(plugin_root)
 
@@ -149,7 +194,11 @@ function M.run(subcmd, symbol)
         table.remove(lines)
       end
 
-      open_float(lines)
+      if display == "loclist" then
+        open_loclist(lines)
+      else
+        open_float(lines)
+      end
       vim.notify("", vim.log.levels.INFO, { replace = notify_id })
     end)
   end)

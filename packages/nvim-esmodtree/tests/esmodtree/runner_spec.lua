@@ -387,5 +387,150 @@ describe("esmodtree.runner", function()
       assert.is_true(#notifications >= 1)
       assert.is_truthy(notifications[1].msg:find("MyButton"))
     end)
+
+    it("opens location list instead of float when display is loclist", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts\nsrc/foo.ts\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+
+      runner.run("down", nil, "loclist")
+      h.drain()
+
+      -- No float should be opened
+      assert.is_nil(find_float_win())
+
+      -- Location list should be populated
+      local items = vim.fn.getloclist(0)
+      assert.is_true(#items >= 2)
+    end)
+
+    it("still opens float when display is nil", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+
+      runner.run("down", nil, nil)
+      h.drain()
+
+      local win = find_float_win()
+      assert.is_not_nil(win)
+    end)
+
+    it("loclist entries have lnum=1 and col=1", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts\nsrc/foo.ts\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+
+      runner.run("down", nil, "loclist")
+      h.drain()
+
+      local items = vim.fn.getloclist(0)
+      for _, item in ipairs(items) do
+        assert.equals(1, item.lnum)
+        assert.equals(1, item.col)
+      end
+    end)
+
+    it("loclist entries preserve tree-drawing characters in text", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local tree_line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/components/index.ts [barrel]"
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = tree_line .. "\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+
+      runner.run("down", nil, "loclist")
+      h.drain()
+
+      local items = vim.fn.getloclist(0)
+      assert.equals(1, #items)
+      assert.equals(tree_line, items[1].text)
+    end)
+
+    it("loclist title is Esmodtree", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({
+        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+      })
+      table.insert(cleanups, restore_system)
+
+      runner.run("down", nil, "loclist")
+      h.drain()
+
+      local info = vim.fn.getloclist(0, { title = 1 })
+      assert.equals("Esmodtree", info.title)
+    end)
+  end)
+
+  describe("_extract_path", function()
+    it("extracts path from a plain root line", function()
+      assert.equals("src/index.ts", runner._extract_path("src/index.ts [entry]"))
+    end)
+
+    it("extracts path from a root line without annotation", function()
+      assert.equals("src/index.ts", runner._extract_path("src/index.ts"))
+    end)
+
+    it("extracts path from a line with tree branch characters", function()
+      -- ├── src/app.ts
+      local line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/app.ts"
+      assert.equals("src/app.ts", runner._extract_path(line))
+    end)
+
+    it("extracts path from a deeply indented line with └──", function()
+      -- └── src/utils/format.ts
+      local line = "    \xe2\x94\x82   \xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 src/utils/format.ts"
+      assert.equals("src/utils/format.ts", runner._extract_path(line))
+    end)
+
+    it("extracts path from a line with [barrel] annotation", function()
+      local line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/components/index.ts [barrel]"
+      assert.equals("src/components/index.ts", runner._extract_path(line))
+    end)
+
+    it("extracts path from a line with [circular] annotation", function()
+      local line = "                \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/services/auth/auth.ts [circular]"
+      assert.equals("src/services/auth/auth.ts", runner._extract_path(line))
+    end)
+
+    it("extracts path from a line with [dynamic] annotation", function()
+      local line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/features/dynamic/lazy.ts [dynamic]"
+      assert.equals("src/features/dynamic/lazy.ts", runner._extract_path(line))
+    end)
+
+    it("returns empty string for an empty line", function()
+      assert.equals("", runner._extract_path(""))
+    end)
+
+    it("returns empty string for a whitespace-only line", function()
+      assert.equals("", runner._extract_path("     "))
+    end)
+
+    it("extracts path from a line with only │ continuation characters", function()
+      -- │   └── src/utils/helpers/constants.ts
+      local line = "    \xe2\x94\x82   \xe2\x94\x82   \xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 src/utils/helpers/constants.ts"
+      assert.equals("src/utils/helpers/constants.ts", runner._extract_path(line))
+    end)
   end)
 end)
