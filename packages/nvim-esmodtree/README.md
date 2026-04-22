@@ -64,6 +64,23 @@ pnpm when available, falling back to npm.
 `:Esmodtree down`, `:Esmodtree up`, and `:Esmodtree updown` display the tree output in a
 centered floating window. Press `q` or `<Esc>` to close.
 
+### Location list display
+
+Prefix any tree subcommand with `l` to send the output to the window-local
+[location list](https://neovim.io/doc/user/quickfix.html#location-list) instead
+of a floating window:
+
+```vim
+:Esmodtree ldown          " dependency tree -> loclist
+:Esmodtree lup            " importer tree -> loclist
+:Esmodtree lupdown        " importer tree (target at root) -> loclist
+:Esmodtree lup MyButton   " filtered by symbol -> loclist
+```
+
+The location list preserves the tree-drawing characters in the display text
+and lets you jump to any file by pressing `<CR>` on its entry. Use `:lopen`,
+`:lnext`, `:lprev` and friends to navigate.
+
 ### Filtering by symbol
 
 When a file exports multiple symbols, you can filter the importer tree to only
@@ -90,15 +107,25 @@ vim.keymap.set("n", "<leader>eu", "<Plug>(esmodtree-up)")
 vim.keymap.set("n", "<leader>eU", "<Plug>(esmodtree-updown)")
 vim.keymap.set("n", "<leader>es", "<Plug>(esmodtree-up-symbol)")
 vim.keymap.set("n", "<leader>eS", "<Plug>(esmodtree-updown-symbol)")
+vim.keymap.set("n", "<leader>eld", "<Plug>(esmodtree-ldown)")
+vim.keymap.set("n", "<leader>elu", "<Plug>(esmodtree-lup)")
+vim.keymap.set("n", "<leader>elU", "<Plug>(esmodtree-lupdown)")
+vim.keymap.set("n", "<leader>els", "<Plug>(esmodtree-lup-symbol)")
+vim.keymap.set("n", "<leader>elS", "<Plug>(esmodtree-lupdown-symbol)")
 ```
 
-| Mapping                           | Description                                                             |
-| --------------------------------- | ----------------------------------------------------------------------- |
-| `<Plug>(esmodtree-down)`          | Show dependency tree for current file                                   |
-| `<Plug>(esmodtree-up)`            | Show importer tree for current file                                     |
-| `<Plug>(esmodtree-updown)`        | Show importer tree (target at root) for current file                    |
-| `<Plug>(esmodtree-up-symbol)`     | Show importer tree filtered to the symbol under cursor                  |
-| `<Plug>(esmodtree-updown-symbol)` | Show importer tree (target at root) filtered to the symbol under cursor |
+| Mapping                            | Description                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| `<Plug>(esmodtree-down)`           | Show dependency tree for current file                                      |
+| `<Plug>(esmodtree-up)`             | Show importer tree for current file                                        |
+| `<Plug>(esmodtree-updown)`         | Show importer tree (target at root) for current file                       |
+| `<Plug>(esmodtree-up-symbol)`      | Show importer tree filtered to the symbol under cursor                     |
+| `<Plug>(esmodtree-updown-symbol)`  | Show importer tree (target at root) filtered to the symbol under cursor    |
+| `<Plug>(esmodtree-ldown)`          | Show dependency tree in the location list                                  |
+| `<Plug>(esmodtree-lup)`            | Show importer tree in the location list                                    |
+| `<Plug>(esmodtree-lupdown)`        | Show importer tree (target at root) in the location list                   |
+| `<Plug>(esmodtree-lup-symbol)`     | Loclist importer tree filtered to the symbol under cursor                  |
+| `<Plug>(esmodtree-lupdown-symbol)` | Loclist importer tree (target at root) filtered to the symbol under cursor |
 
 ## Running tests
 
