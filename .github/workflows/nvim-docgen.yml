@@ -17,10 +17,10 @@ jobs:
 
       - uses: ./.github/actions/setup-mise-with-lua-deps
 
-      - name: Install pandoc
+      - name: Install pandoc and neovim
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc
+          sudo apt-get install -y pandoc neovim
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
