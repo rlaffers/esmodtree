@@ -4,6 +4,7 @@ local SUBCOMMANDS = { "check", "down", "updown", "up", "ldown", "lupdown", "lup"
 
 --- @class esmodtree.Config
 --- @field use_colors boolean Whether to colorize the float window output
+--- @field fold_level? integer Initial fold level for the float window. When set, folds deeper than this level are closed on open. Omit to keep all folds expanded (equivalent to 99).
 
 --- @type esmodtree.Config
 local DEFAULTS = {

@@ -43,21 +43,28 @@ require("esmodtree").setup()
 
 `setup()` accepts an options table:
 
-| Option       | Type      | Default | Description                                                    |
-| ------------ | --------- | ------- | -------------------------------------------------------------- |
-| `use_colors` | `boolean` | `true`  | Colorize file paths and markers in the floating window output. |
+| Option       | Type      | Default | Description                                                                                                                                                      |
+| ------------ | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `use_colors` | `boolean` | `true`  | Colorize file paths and markers in the floating window output.                                                                                                   |
+| `fold_level` | `integer` | —       | Initial fold level for the floating window. Folds deeper than this level are closed when the window opens. Omit to keep all folds expanded (equivalent to `99`). |
 
 Example:
 
 ```lua
 require("esmodtree").setup({
   use_colors = false,
+  fold_level = 1,  -- show only the first level of the tree; deeper nodes folded
 })
 ```
 
 When `use_colors` is `false`, no highlight groups are registered and no
 extmarks are applied — both the float and the location list render as plain
 text.
+
+When `fold_level` is set, the floating window opens with folds above that
+depth closed. You can still open and close individual folds with the standard
+Neovim fold keys (`zo`, `zc`, `za`, `zM`, `zR`, etc.) as well as the `=`
+mapping (bound to `za`) provided by the plugin.
 
 ## Usage
 

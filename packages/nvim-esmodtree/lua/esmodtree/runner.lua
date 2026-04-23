@@ -145,13 +145,21 @@ local function open_float(lines, title)
 
   -- Enable automatic folds based on tree-prefix depth. foldlevel=99 keeps
   -- every fold expanded on open; user can collapse with zc/zM.
+  -- When config.fold_level is set, folds deeper than that level are closed.
+  local fold_level = config.fold_level or 99
   vim.wo[win].foldmethod = "expr"
   vim.wo[win].foldexpr = "v:lua.require'esmodtree.folds'.level(v:lnum)"
   vim.wo[win].foldtext = "v:lua.require'esmodtree.folds'.text()"
   vim.wo[win].foldcolumn = "1"
-  vim.wo[win].foldlevel = 99
+  vim.wo[win].foldlevel = fold_level
   -- vim.wo[win].fillchars = "fold: ,foldinner: ,foldsep:│"
   vim.wo[win].fillchars = "fold: ,foldinner: ,foldsep: "
+  if config.fold_level then
+    -- Force fold recomputation so folds above fold_level close immediately.
+    vim.api.nvim_win_call(win, function()
+      vim.cmd("normal! zx")
+    end)
+  end
 
   -- Set keymaps to close the float
   local function close()
