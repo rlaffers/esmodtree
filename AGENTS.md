@@ -75,3 +75,4 @@ Authenticate via `GH_TOKEN` env var if `gh auth login` has not been run.
 - `packages/cli/src/index.ts` -- library entry point
 - Core dependency: `dependency-cruiser` for graph extraction, `commander` for CLI, `picocolors` for terminal color
 - Planned modules (per `.ai/plans/`): GraphBuilder, GraphTransformer, TreeTraverser, ProjectDetector, RootDetector, TreeFormatter, JsonFormatter
+- `plugin/esmodtree.lua` (repo root) -- Neovim-plugin shim that redirects runtime to `packages/nvim-esmodtree/`. Exists so `{ "rlaffers/esmodtree" }` works with lazy.nvim and pack-style installs without requiring a custom `config` function in user dotfiles. Do not delete.

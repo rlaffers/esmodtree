@@ -19,12 +19,6 @@ Neovim plugin for visualizing ECMAScript module import trees. Wraps the
   cmd = { "Esmodtree" },
   ft = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
   opts = {},
-  config = function(plugin, opts)
-    local subdir = plugin.dir .. "/packages/nvim-esmodtree"
-    vim.opt.rtp:append(subdir)
-    require("lazy.core.loader").packadd(subdir)
-    require("esmodtree").setup(opts)
-  end,
 }
 ```
 
@@ -32,15 +26,10 @@ Neovim plugin for visualizing ECMAScript module import trees. Wraps the
 works before opening any JS/TS file). `ft` auto-loads the plugin when a supported filetype
 is opened.
 
-**Why the extra `packadd` and `setup` calls?** This repo is a monorepo — the Neovim plugin
-lives under `packages/nvim-esmodtree/`, not at the repo root. Appending the subdirectory
-to `&runtimepath` alone is not enough: lazy.nvim only sources `plugin/` files located
-directly under the plugin's root (`plugin.dir`), so `plugin/esmodtree.lua` (which registers
-the `:Esmodtree` command) would never run. Calling `require("lazy.core.loader").packadd(subdir)`
-forces lazy to source the subdirectory's `plugin/` files synchronously during `config`.
-Additionally, when `config` is a function, lazy does not auto-apply `opts`, so
-`require("esmodtree").setup(opts)` must be called explicitly. See
-[lazy.nvim#183](https://github.com/folke/lazy.nvim/issues/183) for background.
+This repo is a pnpm monorepo; the Neovim plugin lives under `packages/nvim-esmodtree/`.
+A small shim at the repo root (`plugin/esmodtree.lua`) transparently redirects the runtime
+to the subdirectory, so no `config` function or manual `&runtimepath` manipulation is
+required in your lazy.nvim spec.
 
 ### Other plugin managers
 
