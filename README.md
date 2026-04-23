@@ -17,6 +17,12 @@ Produces `tree`-style ASCII dependency trees for TypeScript/JavaScript projects.
 
 ![esmodtree --updown --symbol](./assets/cli-updown-symbol.png)
 
+![Esmodtree down](./assets/nvim-down.png)
+
+![Esmodtree ldown](./assets/nvim-down-loclist.png)
+
+![Esmodtree updown](./assets/nvim-updown.png)
+
 ## Packages
 
 | Package          | Path                      | Description                                                                                     |
