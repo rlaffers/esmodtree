@@ -16,6 +16,7 @@ Neovim plugin for visualizing ECMAScript module import trees. Wraps the
 ```lua
 {
   "rlaffers/esmodtree",
+  main = "esmodtree",
   cmd = { "Esmodtree" },
   ft = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
   opts = {},
@@ -26,10 +27,10 @@ Neovim plugin for visualizing ECMAScript module import trees. Wraps the
 works before opening any JS/TS file). `ft` auto-loads the plugin when a supported filetype
 is opened.
 
-This repo is a pnpm monorepo; the Neovim plugin lives under `packages/nvim-esmodtree/`.
-A small shim at the repo root (`plugin/esmodtree.lua`) transparently redirects the runtime
-to the subdirectory, so no `config` function or manual `&runtimepath` manipulation is
-required in your lazy.nvim spec.
+`main = "esmodtree"` is required because this repo is a monorepo — the Lua module lives
+under `packages/nvim-esmodtree/lua/esmodtree/`, exposed via a runtime shim at the repo
+root (`plugin/esmodtree.lua`). Without the explicit `main`, lazy.nvim's auto-setup
+inference runs before the shim and cannot find the module.
 
 ### Other plugin managers
 
