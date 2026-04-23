@@ -71,7 +71,8 @@ local function open_float(lines, title)
   -- Cap at 80% of editor dimensions
   local max_width = math.floor(vim.o.columns * 0.8)
   local max_height = math.floor(vim.o.lines * 0.8)
-  local width = math.min(max_line_width, max_width)
+  -- +1 reserves an interior column for foldcolumn=1.
+  local width = math.min(max_line_width + 1, max_width)
   local height = math.min(#lines, max_height)
 
   -- Ensure minimum size
@@ -142,6 +143,16 @@ local function open_float(lines, title)
     title_pos = "center",
   })
 
+  -- Enable automatic folds based on tree-prefix depth. foldlevel=99 keeps
+  -- every fold expanded on open; user can collapse with zc/zM.
+  vim.wo[win].foldmethod = "expr"
+  vim.wo[win].foldexpr = "v:lua.require'esmodtree.folds'.level(v:lnum)"
+  vim.wo[win].foldtext = "v:lua.require'esmodtree.folds'.text()"
+  vim.wo[win].foldcolumn = "1"
+  vim.wo[win].foldlevel = 99
+  -- vim.wo[win].fillchars = "fold: ,foldinner: ,foldsep:│"
+  vim.wo[win].fillchars = "fold: ,foldinner: ,foldsep: "
+
   -- Set keymaps to close the float
   local function close()
     if vim.api.nvim_win_is_valid(win) then
@@ -151,6 +162,7 @@ local function open_float(lines, title)
 
   vim.keymap.set("n", "q", close, { buffer = buf, nowait = true })
   vim.keymap.set("n", "<Esc>", close, { buffer = buf, nowait = true })
+  vim.keymap.set("n", "=", "za", { buffer = buf, nowait = true })
 end
 
 --- Extract a file path from a tree output line by stripping leading
