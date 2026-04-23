@@ -2,20 +2,22 @@ name: nvim-release
 on:
   push:
     tags:
-      - 'nvim-v*'
+      - 'nvim-esmodtree@*.*.*'
 jobs:
   luarocks-upload:
-    # TODO: enable when ready
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Extract version
+        id: version
+        run: echo "LUAROCKS_VERSION=${GITHUB_REF_NAME#nvim-esmodtree@}" >> "$GITHUB_OUTPUT"
       - name: LuaRocks Upload
         uses: nvim-neorocks/luarocks-tag-release@v7
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
         with:
           name: 'nvim-esmodtree'
+          version: ${{ steps.version.outputs.LUAROCKS_VERSION }}
           working-directory: packages/nvim-esmodtree
           summary: 'ES module tree viewer'
           detailed_description: |
