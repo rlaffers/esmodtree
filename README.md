@@ -9,13 +9,13 @@ Produces `tree`-style ASCII dependency trees for TypeScript/JavaScript projects.
 - **Where is this module used?** — walk importers upward, all the way to entry points.
 - **What does this entry point depend on?** — walk dependencies downward.
 
-[esmodtree --down](./assets/cli-down.png)
+![esmodtree --down](./assets/cli-down.png)
 
-[esmodtree --up](./assets/cli-up.png)
+![esmodtree --up](./assets/cli-up.png)
 
-[esmodtree --updown](./assets/cli-updown.png)
+![esmodtree --updown](./assets/cli-updown.png)
 
-[esmodtree --updown --symbol](./assets/cli-updown-symbol.png)
+![esmodtree --updown --symbol](./assets/cli-updown-symbol.png)
 
 ## Packages
 
