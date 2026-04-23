@@ -162,7 +162,7 @@ own `:highlight` overrides win:
 | `EsmodtreeMarkerEntry`    | `DiagnosticOk`    | `[entry]` marker                |
 | `EsmodtreeMarkerPage`     | `Statement`       | `[page]` marker                 |
 | `EsmodtreeMarkerLayout`   | `Function`        | `[layout]` marker               |
-| `EsmodtreeMarkerBarrel`   | `Type`            | `[barrel]` marker               |
+| `EsmodtreeMarkerBarrel`   | `DiagnosticHint`  | `[barrel]` marker               |
 | `EsmodtreeMarkerDynamic`  | `DiagnosticWarn`  | `[dynamic]` marker              |
 | `EsmodtreeMarkerCircular` | `DiagnosticError` | `[circular]` marker             |
 
