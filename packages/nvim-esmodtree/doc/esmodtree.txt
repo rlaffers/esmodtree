@@ -38,15 +38,18 @@ LAZY.NVIM (RECOMMENDED) ~
       cmd = { "Esmodtree" },
       ft = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
       opts = {},
-      config = function(plugin)
-        vim.opt.rtp:append(plugin.dir .. "/packages/nvim-esmodtree")
-      end,
     }
 <
 
 `cmd` registers the `:Esmodtree` command immediately at startup (so `:Esmodtree
 install` works before opening any JS/TS file). `ft` auto-loads the plugin when
 a supported filetype is opened.
+
+This repo is a pnpm monorepo; the Neovim plugin lives under
+`packages/nvim-esmodtree/`. A small shim at the repo root
+(`plugin/esmodtree.lua`) transparently redirects the runtime to the
+subdirectory, so no `config` function or manual `&runtimepath` manipulation is
+required in your lazy.nvim spec.
 
 
 OTHER PLUGIN MANAGERS ~
