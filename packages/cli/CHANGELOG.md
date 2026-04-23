@@ -1,3 +1,10 @@
+# [@esmodtree/cli-v1.2.1](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.2.0...@esmodtree/cli@1.2.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **cli:** include re-exporting modules in the output with --symbol opt is used ([19657cd](https://github.com/rlaffers/esmodtree/commit/19657cdee21f987d993d336b09159fcdd2bcd13f))
+
 # [1.2.0](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.1.0...@esmodtree/cli@1.2.0) (2026-04-21)
 
 
