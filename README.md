@@ -9,6 +9,8 @@ Produces `tree`-style ASCII dependency trees for TypeScript/JavaScript projects.
 - **Where is this module used?** — walk importers upward, all the way to entry points.
 - **What does this entry point depend on?** — walk dependencies downward.
 
+### CLI tool: `esmodtree`
+
 ![esmodtree --down](./assets/cli-down.png)
 
 ![esmodtree --up](./assets/cli-up.png)
@@ -16,6 +18,8 @@ Produces `tree`-style ASCII dependency trees for TypeScript/JavaScript projects.
 ![esmodtree --updown](./assets/cli-updown.png)
 
 ![esmodtree --updown --symbol](./assets/cli-updown-symbol.png)
+
+### Neovim plugin: `nvim-esmodtree`
 
 ![Esmodtree down](./assets/nvim-down.png)
 
