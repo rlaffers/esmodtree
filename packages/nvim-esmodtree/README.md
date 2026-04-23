@@ -129,16 +129,16 @@ The plugin provides `<Plug>` mappings that you can bind to your preferred keys.
 These are registered when `setup()` is called.
 
 ```lua
-vim.keymap.set("n", "<leader>ed", "<Plug>(esmodtree-down)")
-vim.keymap.set("n", "<leader>eu", "<Plug>(esmodtree-up)")
-vim.keymap.set("n", "<leader>eU", "<Plug>(esmodtree-updown)")
-vim.keymap.set("n", "<leader>es", "<Plug>(esmodtree-up-symbol)")
-vim.keymap.set("n", "<leader>eS", "<Plug>(esmodtree-updown-symbol)")
-vim.keymap.set("n", "<leader>eld", "<Plug>(esmodtree-ldown)")
-vim.keymap.set("n", "<leader>elu", "<Plug>(esmodtree-lup)")
-vim.keymap.set("n", "<leader>elU", "<Plug>(esmodtree-lupdown)")
-vim.keymap.set("n", "<leader>els", "<Plug>(esmodtree-lup-symbol)")
-vim.keymap.set("n", "<leader>elS", "<Plug>(esmodtree-lupdown-symbol)")
+vim.keymap.set("n", "<leader>k", "<Plug>(esmodtree-lupdown-symbol)")
+vim.keymap.set("n", "<leader>K", "<Plug>(esmodtree-updown-symbol)")
+vim.keymap.set("n", "<leader>kk", "<Plug>(esmodtree-updown)")
+vim.keymap.set("n", "<leader>KK", "<Plug>(esmodtree-lupdown)")
+vim.keymap.set("n", "<leader>kj", "<Plug>(esmodtree-ldown)")
+vim.keymap.set("n", "<leader>KJ", "<Plug>(esmodtree-down)")
+vim.keymap.set("n", "<leader>ki", "<Plug>(esmodtree-lup-symbol)")
+vim.keymap.set("n", "<leader>KI", "<Plug>(esmodtree-up-symbol)")
+vim.keymap.set("n", "<leader>ku", "<Plug>(esmodtree-lup)")
+vim.keymap.set("n", "<leader>KU", "<Plug>(esmodtree-up)")
 ```
 
 | Mapping                            | Description                                                                |
