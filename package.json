@@ -3,9 +3,7 @@
   "private": true,
   "description": "ES Module import tree visualizer",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
+    "test": "pnpm -r run test",
     "format": "pnpm exec prettier . --write && pnpm -r run format",
     "format:check": "pnpm exec prettier . --check && pnpm -r run format:check",
     "typecheck": "pnpm -r run typecheck",
