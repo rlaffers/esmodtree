@@ -122,4 +122,57 @@ describe('fileImportsSymbol', () => {
     )
     expect(result).toBe(false)
   })
+
+  it('returns true for `export * from` re-exports', () => {
+    const result = fileImportsSymbol(
+      fixture('reexports-star.ts'),
+      target,
+      'MyFunction',
+      compilerOptions,
+    )
+    expect(result).toBe(true)
+  })
+
+  it('returns true for `export * as NS from` namespace re-exports', () => {
+    const result = fileImportsSymbol(
+      fixture('reexports-namespace.ts'),
+      target,
+      'MyFunction',
+      compilerOptions,
+    )
+    expect(result).toBe(true)
+  })
+
+  it('returns true for named re-exports matching the symbol', () => {
+    const result = fileImportsSymbol(
+      fixture('re-exports.ts'),
+      target,
+      'MyFunction',
+      compilerOptions,
+    )
+    expect(result).toBe(true)
+  })
+
+  it('matches aliased re-exports against the original name, not the alias', () => {
+    const aliased = fileImportsSymbol(
+      fixture('reexports-aliased.ts'),
+      target,
+      'MyFunction',
+      compilerOptions,
+    )
+    expect(aliased).toBe(true)
+
+    const byAlias = fileImportsSymbol(
+      fixture('reexports-aliased.ts'),
+      target,
+      'fn',
+      compilerOptions,
+    )
+    expect(byAlias).toBe(false)
+  })
+
+  it('returns false when named re-exports do not include the symbol', () => {
+    const result = fileImportsSymbol(fixture('re-exports.ts'), target, 'myLet', compilerOptions)
+    expect(result).toBe(false)
+  })
 })

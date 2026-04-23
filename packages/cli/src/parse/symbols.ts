@@ -85,13 +85,19 @@ export function getExportedSymbols(absPath: string): string[] {
 }
 
 /**
- * Checks whether a file imports a specific named symbol from a target module.
+ * Checks whether a file imports or re-exports a specific named symbol from a
+ * target module.
  *
- * Uses `ts.resolveModuleName` to match import specifiers to the target file,
- * then checks if the named bindings include the symbol.
+ * Uses `ts.resolveModuleName` to match import/export specifiers to the target
+ * file, then checks if the named bindings include the symbol.
  *
- * Also returns true for namespace imports (`import * as X from '…'`) since
- * the symbol is accessible as `X.symbol`.
+ * Returns true for:
+ *   - named imports matching the symbol (including aliased forms)
+ *   - namespace imports (`import * as X from '…'`) — symbol is reachable as `X.symbol`
+ *   - `export * from '…'` — propagates all named exports of the target
+ *   - `export * as NS from '…'` — symbol reachable as `NS.symbol`
+ *   - `export { foo } from '…'` / `export { foo as bar } from '…'` matching the
+ *     original exported name
  */
 export function fileImportsSymbol(
   importerAbsPath: string,
@@ -107,34 +113,63 @@ export function fileImportsSymbol(
 
   const targetNorm = normaliseResolved(targetAbsPath)
 
-  for (const stmt of sf.statements) {
-    if (!ts.isImportDeclaration(stmt)) continue
-    if (!ts.isStringLiteral(stmt.moduleSpecifier)) continue
-
-    const specifier = stmt.moduleSpecifier.text
+  const specifierResolvesToTarget = (specifier: string): boolean => {
     const resolved = ts.resolveModuleName(specifier, importerAbsPath, compilerOptions, host)
-
     const resolvedPath = resolved.resolvedModule?.resolvedFileName
-    if (!resolvedPath) continue
-    if (normaliseResolved(resolvedPath) !== targetNorm) continue
+    if (!resolvedPath) return false
+    return normaliseResolved(resolvedPath) === targetNorm
+  }
 
-    // This import points to the target file
-    const clause = stmt.importClause
-    if (!clause) continue
+  for (const stmt of sf.statements) {
+    if (ts.isImportDeclaration(stmt)) {
+      if (!ts.isStringLiteral(stmt.moduleSpecifier)) continue
+      if (!specifierResolvesToTarget(stmt.moduleSpecifier.text)) continue
 
-    // Namespace import: import * as X from '…'
-    if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
-      return true
+      const clause = stmt.importClause
+      if (!clause) continue
+
+      // Namespace import: import * as X from '…'
+      if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+        return true
+      }
+
+      // Named imports: import { Foo, bar as Baz } from '…'
+      if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+        for (const el of clause.namedBindings.elements) {
+          // el.propertyName is the original export name when aliased: import { Foo as Bar }
+          // el.name is the local binding
+          const importedName = el.propertyName?.text ?? el.name.text
+          if (importedName === symbol) {
+            return true
+          }
+        }
+      }
+      continue
     }
 
-    // Named imports: import { Foo, bar as Baz } from '…'
-    if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
-      for (const el of clause.namedBindings.elements) {
-        // el.propertyName is the original export name when aliased: import { Foo as Bar }
-        // el.name is the local binding
-        const importedName = el.propertyName?.text ?? el.name.text
-        if (importedName === symbol) {
-          return true
+    // Re-export forms: export * from '…', export * as NS from '…',
+    // export { foo } from '…'
+    if (ts.isExportDeclaration(stmt) && stmt.moduleSpecifier) {
+      if (!ts.isStringLiteral(stmt.moduleSpecifier)) continue
+      if (!specifierResolvesToTarget(stmt.moduleSpecifier.text)) continue
+
+      // export * from '…' — no exportClause
+      if (!stmt.exportClause) {
+        return true
+      }
+
+      // export * as NS from '…'
+      if (ts.isNamespaceExport(stmt.exportClause)) {
+        return true
+      }
+
+      // export { foo, bar as baz } from '…' — match against original name
+      if (ts.isNamedExports(stmt.exportClause)) {
+        for (const el of stmt.exportClause.elements) {
+          const originalName = el.propertyName?.text ?? el.name.text
+          if (originalName === symbol) {
+            return true
+          }
         }
       }
     }
