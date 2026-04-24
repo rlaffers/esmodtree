@@ -1,5 +1,5 @@
 *esmodtree.txt*  Neovim plugin for visualizing ECMAScript module import trees.
-                            For Neovim >= 0.10.0    Last change: 2026 April 23
+                            For Neovim >= 0.10.0    Last change: 2026 April 24
 
 ==============================================================================
 Table of Contents                                *esmodtree-table-of-contents*
