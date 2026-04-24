@@ -2,26 +2,18 @@ name: nvim-release
 on:
   push:
     tags:
-      - 'nvim-esmodtree@*.*.*'
+      - '*'
+  workflow_dispatch:
+
 jobs:
   luarocks-upload:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Extract version
-        id: version
-        run: echo "LUAROCKS_VERSION=${GITHUB_REF_NAME#nvim-esmodtree@}" >> "$GITHUB_OUTPUT"
+      - name: Setup mise with Lua deps
+        uses: ./.github/actions/setup-mise-with-lua-deps
       - name: LuaRocks Upload
-        uses: nvim-neorocks/luarocks-tag-release@v7
+        working-directory: packages/nvim-esmodtree
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
-        with:
-          name: 'nvim-esmodtree'
-          version: ${{ steps.version.outputs.LUAROCKS_VERSION }}
-          working-directory: packages/nvim-esmodtree
-          summary: 'ES module tree viewer'
-          detailed_description: |
-            A Neovim plugin for inspecting ECMAScript module tree.
-            Esmodtree is great for both examining how a module is used in a project,
-            and for figuring out which modules are used by the inspected module.
-          license: 'GPL-3.0'
+        run: luarocks upload nvim-esmodtree-scm-1.rockspec --api-key="$LUAROCKS_API_KEY"
