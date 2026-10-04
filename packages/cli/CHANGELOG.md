@@ -1,3 +1,10 @@
+# [@esmodtree/cli-v1.3.2](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.3.1...@esmodtree/cli@1.3.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* **cli:** add missing repository field in CLI package.json ([777d242](https://github.com/rlaffers/esmodtree/commit/777d242febf20fb0753cef8792e2fff91e3a6d47))
+
 # [@esmodtree/cli-v1.3.1](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.3.0...@esmodtree/cli@1.3.1) (2026-10-04)
 
 
