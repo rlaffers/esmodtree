@@ -1,3 +1,10 @@
+# [@esmodtree/cli-v1.3.0](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.2.1...@esmodtree/cli@1.3.0) (2026-10-04)
+
+
+### Features
+
+* **cli,nvim:** produce refs in CLI json output + jump to exact location from symbol loclist ([bb793af](https://github.com/rlaffers/esmodtree/commit/bb793afa049592a379523a45941c48969f126950))
+
 # [@esmodtree/cli-v1.2.1](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.2.0...@esmodtree/cli@1.2.1) (2026-04-23)
 
 
