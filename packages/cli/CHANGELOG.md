@@ -1,3 +1,10 @@
+# [@esmodtree/cli-v1.3.1](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.3.0...@esmodtree/cli@1.3.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* upgrade pnpm and fix typescript import path in the cli package ([e2df541](https://github.com/rlaffers/esmodtree/commit/e2df54133b13fdf5b38647717f47405fdae88923))
+
 # [@esmodtree/cli-v1.3.0](https://github.com/rlaffers/esmodtree/compare/@esmodtree/cli@1.2.1...@esmodtree/cli@1.3.0) (2026-10-04)
 
 
