@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import ts from 'typescript'
+import * as ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { analyzeSymbolLink, fileImportsSymbol, getExportedSymbols } from '../symbols'
 

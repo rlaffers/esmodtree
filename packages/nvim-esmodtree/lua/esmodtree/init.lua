@@ -1,3 +1,10 @@
+-- TODO: better README: Preview, Features, Installation, Configuration, Usage
+-- TODO: jumps directly from the floating window
+-- TODO: better display of foldopen markers
+-- TODO: create a telescope extension
+-- TODO: g? should show key mappings at the bottom
+-- TODO: remove assets, use user-attachments
+-- TODO: move nvim-esmodtree into a separate repo
 local M = {}
 
 local SUBCOMMANDS = { "check", "down", "updown", "up", "ldown", "lupdown", "lup", "install" }

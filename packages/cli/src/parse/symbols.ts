@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import ts from 'typescript'
+import * as ts from 'typescript'
 import type { SymbolReference } from '~/graph/types'
 
 function parseSourceFile(absPath: string): ts.SourceFile {
