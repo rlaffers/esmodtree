@@ -7,6 +7,6 @@
     "docgen": "mkdir -p doc && ./panvimdoc.sh --project-name esmodtree --input-file README.md --description 'Neovim plugin for visualizing ECMAScript module import trees.' --vim-version 'Neovim >= 0.10.0' --toc true --demojify true --treesitter true --doc-mapping true && nvim --headless --noplugin -u NONE -c 'helptags doc' -c 'quit'"
   },
   "dependencies": {
-    "@esmodtree/cli": "0.1.1"
+    "@esmodtree/cli": "^1.3.2"
   }
 }
