@@ -26,6 +26,7 @@ local DEFAULTS = {
   EsmodtreeMarkerBarrel = { link = "DiagnosticHint" },
   EsmodtreeMarkerDynamic = { link = "DiagnosticWarn" },
   EsmodtreeMarkerCircular = { link = "DiagnosticError" },
+  EsmodtreeLocation = { link = "Comment" },
 }
 
 --- Register the plugin's highlight groups with `default = true` so user or
@@ -159,6 +160,23 @@ function M.highlight_line(buf, lnum, line)
       })
     end
   end
+end
+
+--- Append dimmed "line N col N" virtual text to the end of a buffer line.
+--- @param buf integer
+--- @param lnum integer 0-indexed line number
+--- @param reference esmodtree.Reference
+--- @param use_colors boolean When false the text is shown without a highlight group
+function M.add_location(buf, lnum, reference, use_colors)
+  vim.api.nvim_buf_set_extmark(buf, M.ns, lnum, 0, {
+    virt_text = {
+      {
+        string.format("  line %d col %d", reference.line, reference.column),
+        use_colors and "EsmodtreeLocation" or nil,
+      },
+    },
+    virt_text_pos = "eol",
+  })
 end
 
 --- Apply highlights for all lines in the buffer.

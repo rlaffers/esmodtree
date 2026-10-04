@@ -89,4 +89,38 @@ describe('reverseTree', () => {
     expect(forest[0].children[0].path).toBe('c.ts')
     expect(forest[0].children[0].children[0].path).toBe('b.ts')
   })
+  it('keeps each node reference on the reversed node', () => {
+    const importer: TreeNode = {
+      ...node('importer.ts'),
+      reference: { line: 3, column: 5, kind: 'usage' },
+    }
+    const grandparent: TreeNode = {
+      ...node('grand.ts', []),
+      reference: { line: 1, column: 20, kind: 'import' },
+    }
+    importer.children = [grandparent]
+    const tree = node('target.ts', [importer])
+
+    const forest = reverseTree(tree)
+
+    expect(forest[0].path).toBe('grand.ts')
+    expect(forest[0].reference).toEqual({ line: 1, column: 20, kind: 'import' })
+    expect(forest[0].children[0].reference).toEqual({ line: 3, column: 5, kind: 'usage' })
+    expect(forest[0].children[0].children[0].reference).toBeUndefined()
+  })
+
+  it('does not merge nodes whose references differ', () => {
+    const ref = (line: number): TreeNode['reference'] => ({ line, column: 1, kind: 'usage' })
+    // shared.ts reaches target.ts through two different importers at different locations
+    const viaA: TreeNode = { ...node('a.ts', [{ ...node('shared.ts'), reference: ref(1) }]) }
+    const viaB: TreeNode = { ...node('b.ts', [{ ...node('shared.ts'), reference: ref(2) }]) }
+    const tree = node('target.ts', [viaA, viaB])
+
+    const forest = reverseTree(tree)
+
+    expect(forest.map(n => [n.path, n.reference?.line])).toEqual([
+      ['shared.ts', 1],
+      ['shared.ts', 2],
+    ])
+  })
 })

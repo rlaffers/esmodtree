@@ -37,6 +37,20 @@ local function close_floats()
   end
 end
 
+--- Build a CLI JSON tree node.
+local function node(path, children, extra)
+  local n = { path = path, circular = false, markers = {}, children = children or {} }
+  for k, v in pairs(extra or {}) do
+    n[k] = v
+  end
+  return n
+end
+
+--- Encode a tree (or forest) the way the CLI's --json does.
+local function json(root)
+  return vim.json.encode(root)
+end
+
 describe("esmodtree.runner", function()
   local runner
   local cleanups
@@ -72,7 +86,7 @@ describe("esmodtree.runner", function()
       assert.equals(vim.log.levels.ERROR, notifications[1].level)
     end)
 
-    it("executes esmodtree --down <path> --no-color for down subcommand", function()
+    it("executes esmodtree --down <path> --json for down subcommand", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
@@ -87,10 +101,10 @@ describe("esmodtree.runner", function()
       assert.is_truthy(cmd[1]:find("esmodtree"))
       assert.equals("--down", cmd[2])
       assert.equals("/project/src/index.ts", cmd[3])
-      assert.equals("--no-color", cmd[4])
+      assert.equals("--json", cmd[4])
     end)
 
-    it("executes esmodtree --updown <path> --no-color for updown subcommand", function()
+    it("executes esmodtree --updown <path> --json for updown subcommand", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
@@ -105,7 +119,7 @@ describe("esmodtree.runner", function()
       assert.is_truthy(cmd[1]:find("esmodtree"))
       assert.equals("--updown", cmd[2])
       assert.equals("/project/src/index.ts", cmd[3])
-      assert.equals("--no-color", cmd[4])
+      assert.equals("--json", cmd[4])
     end)
 
     it("notifies error on CLI failure with stderr content", function()
@@ -155,7 +169,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts\n  src/foo.ts\n  src/bar.ts\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts", { node("src/foo.ts"), node("src/bar.ts") })), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -166,13 +180,13 @@ describe("esmodtree.runner", function()
       assert.is_not_nil(win)
     end)
 
-    it("float buffer contains the CLI output lines", function()
+    it("float buffer contains the rendered tree lines", function()
       local notifications, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "line1\nline2\nline3\n", stderr = "" },
+        { code = 0, stdout = json(node("src/a.ts", { node("src/b.ts"), node("src/c.ts") })), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -183,9 +197,9 @@ describe("esmodtree.runner", function()
       assert.is_not_nil(win)
       local buf = vim.api.nvim_win_get_buf(win)
       local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-      assert.equals("line1", lines[1])
-      assert.equals("line2", lines[2])
-      assert.equals("line3", lines[3])
+      assert.equals("src/a.ts", lines[1])
+      assert.equals("├── src/b.ts", lines[2])
+      assert.equals("└── src/c.ts", lines[3])
     end)
 
     it("float buffer is a scratch buffer (nofile, not modifiable)", function()
@@ -194,7 +208,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "output\n", stderr = "" },
+        { code = 0, stdout = json(node("output.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -214,7 +228,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "output\n", stderr = "" },
+        { code = 0, stdout = json(node("output.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -240,10 +254,10 @@ describe("esmodtree.runner", function()
       local long_line = string.rep("x", 500)
       local many_lines = {}
       for i = 1, 200 do
-        many_lines[i] = long_line
+        many_lines[i] = node(long_line)
       end
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = table.concat(many_lines, "\n") .. "\n", stderr = "" },
+        { code = 0, stdout = json(node(long_line, many_lines)), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -265,7 +279,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "output\n", stderr = "" },
+        { code = 0, stdout = json(node("output.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -288,7 +302,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "output\n", stderr = "" },
+        { code = 0, stdout = json(node("output.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -335,7 +349,7 @@ describe("esmodtree.runner", function()
       assert.is_truthy(cmd[1]:find("esmodtree"))
       assert.equals("--up", cmd[2])
       assert.equals("/project/src/components/Button.ts", cmd[3])
-      assert.equals("--no-color", cmd[4])
+      assert.equals("--json", cmd[4])
       assert.equals("--symbol", cmd[5])
       assert.equals("MyButton", cmd[6])
     end)
@@ -355,7 +369,7 @@ describe("esmodtree.runner", function()
       assert.is_truthy(cmd[1]:find("esmodtree"))
       assert.equals("--updown", cmd[2])
       assert.equals("/project/src/components/Button.ts", cmd[3])
-      assert.equals("--no-color", cmd[4])
+      assert.equals("--json", cmd[4])
       assert.equals("--symbol", cmd[5])
       assert.equals("MyButton", cmd[6])
     end)
@@ -373,7 +387,7 @@ describe("esmodtree.runner", function()
       assert.equals(1, #system_calls)
       local cmd = system_calls[1].cmd
       assert.equals(4, #cmd)
-      assert.equals("--no-color", cmd[4])
+      assert.equals("--json", cmd[4])
     end)
 
     it("includes symbol in spinner notification", function()
@@ -396,7 +410,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts\nsrc/foo.ts\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts", { node("src/foo.ts") })), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -417,7 +431,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -434,7 +448,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts\nsrc/foo.ts\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts", { node("src/foo.ts") })), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -453,9 +467,12 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, restore_notify)
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
-      local tree_line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/components/index.ts [barrel]"
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = tree_line .. "\n", stderr = "" },
+        {
+          code = 0,
+          stdout = json(node("src/index.ts", { node("src/components/index.ts", {}, { markers = { "barrel" } }) })),
+          stderr = "",
+        },
       })
       table.insert(cleanups, restore_system)
 
@@ -463,8 +480,9 @@ describe("esmodtree.runner", function()
       h.drain()
 
       local items = vim.fn.getloclist(0)
-      assert.equals(1, #items)
-      assert.equals(tree_line, items[1].text)
+      assert.equals(2, #items)
+      assert.equals("src/index.ts", items[1].text)
+      assert.equals("└── src/components/index.ts [barrel]", items[2].text)
     end)
 
     it("loclist title reflects subcommand", function()
@@ -473,7 +491,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -490,7 +508,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -509,7 +527,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts")), stderr = "" },
       })
       table.insert(cleanups, restore_system)
 
@@ -518,58 +536,6 @@ describe("esmodtree.runner", function()
 
       local info = vim.fn.getloclist(0, { title = 1 })
       assert.equals(" 🔎 Importer tree ⇧ (foo) ", info.title)
-    end)
-  end)
-
-  describe("_extract_path", function()
-    it("extracts path from a plain root line", function()
-      assert.equals("src/index.ts", runner._extract_path("src/index.ts [entry]"))
-    end)
-
-    it("extracts path from a root line without annotation", function()
-      assert.equals("src/index.ts", runner._extract_path("src/index.ts"))
-    end)
-
-    it("extracts path from a line with tree branch characters", function()
-      -- ├── src/app.ts
-      local line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/app.ts"
-      assert.equals("src/app.ts", runner._extract_path(line))
-    end)
-
-    it("extracts path from a deeply indented line with └──", function()
-      -- └── src/utils/format.ts
-      local line = "    \xe2\x94\x82   \xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 src/utils/format.ts"
-      assert.equals("src/utils/format.ts", runner._extract_path(line))
-    end)
-
-    it("extracts path from a line with [barrel] annotation", function()
-      local line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/components/index.ts [barrel]"
-      assert.equals("src/components/index.ts", runner._extract_path(line))
-    end)
-
-    it("extracts path from a line with [circular] annotation", function()
-      local line = "                \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/services/auth/auth.ts [circular]"
-      assert.equals("src/services/auth/auth.ts", runner._extract_path(line))
-    end)
-
-    it("extracts path from a line with [dynamic] annotation", function()
-      local line = "    \xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 src/features/dynamic/lazy.ts [dynamic]"
-      assert.equals("src/features/dynamic/lazy.ts", runner._extract_path(line))
-    end)
-
-    it("returns empty string for an empty line", function()
-      assert.equals("", runner._extract_path(""))
-    end)
-
-    it("returns empty string for a whitespace-only line", function()
-      assert.equals("", runner._extract_path("     "))
-    end)
-
-    it("extracts path from a line with only │ continuation characters", function()
-      -- │   └── src/utils/helpers/constants.ts
-      local line =
-        "    \xe2\x94\x82   \xe2\x94\x82   \xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 src/utils/helpers/constants.ts"
-      assert.equals("src/utils/helpers/constants.ts", runner._extract_path(line))
     end)
   end)
 
@@ -594,7 +560,7 @@ describe("esmodtree.runner", function()
     it("applies highlights by default when setup() was never called", function()
       local _, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
-      stub_ok_output("src/index.ts [entry]\n")
+      stub_ok_output(json(node("src/index.ts", {}, { markers = { "entry" } })))
 
       runner.run("down")
       h.drain()
@@ -606,7 +572,7 @@ describe("esmodtree.runner", function()
       local _, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       require("esmodtree").setup({ use_colors = true })
-      stub_ok_output("src/index.ts [entry]\n")
+      stub_ok_output(json(node("src/index.ts", {}, { markers = { "entry" } })))
 
       runner.run("down")
       h.drain()
@@ -618,7 +584,7 @@ describe("esmodtree.runner", function()
       local _, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       require("esmodtree").setup({ use_colors = false })
-      stub_ok_output("src/index.ts [entry]\n")
+      stub_ok_output(json(node("src/index.ts", {}, { markers = { "entry" } })))
 
       runner.run("down")
       h.drain()
@@ -630,7 +596,7 @@ describe("esmodtree.runner", function()
       local _, restore_notify = h.capture_notifications()
       table.insert(cleanups, restore_notify)
       require("esmodtree").setup({})
-      stub_ok_output("src/index.ts [entry]\n")
+      stub_ok_output(json(node("src/index.ts", {}, { markers = { "entry" } })))
 
       runner.run("down")
       h.drain()
@@ -643,7 +609,11 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts [entry]\nsrc/foo.ts\n", stderr = "" },
+        {
+          code = 0,
+          stdout = json(node("src/index.ts", { node("src/foo.ts") }, { markers = { "entry" } })),
+          stderr = "",
+        },
       })
       table.insert(cleanups, restore_system)
       table.insert(cleanups, function()
@@ -666,7 +636,7 @@ describe("esmodtree.runner", function()
       table.insert(cleanups, h.stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
       table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
       local _, restore_system = h.stub_system({
-        { code = 0, stdout = "src/index.ts [entry]\n", stderr = "" },
+        { code = 0, stdout = json(node("src/index.ts", {}, { markers = { "entry" } })), stderr = "" },
       })
       table.insert(cleanups, restore_system)
       table.insert(cleanups, function()
@@ -702,6 +672,145 @@ describe("esmodtree.runner", function()
       assert.equals(2, #rendered)
       assert.equals("src/index.ts [entry]", rendered[1])
       assert.equals(tree_line, rendered[2])
+    end)
+  end)
+  describe("symbol locations", function()
+    local function run_loclist(stdout, symbol)
+      table.insert(cleanups, select(2, h.capture_notifications()))
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/target.ts"))
+      local _, restore_system = h.stub_system({ { code = 0, stdout = stdout, stderr = "" } })
+      table.insert(cleanups, restore_system)
+      table.insert(cleanups, function()
+        pcall(vim.cmd, "lclose")
+      end)
+
+      runner.run("updown", symbol, "loclist")
+      h.drain()
+    end
+
+    local function tree_with_reference()
+      return json(node("src/target.ts", {
+        node("src/a.ts", {}, { reference = { line = 12, column = 5, kind = "usage" } }),
+        node("src/b.ts", {}, { reference = { line = 1, column = 24, kind = "import" } }),
+        node("src/c.ts"),
+      }))
+    end
+
+    it("sets lnum and col on loclist items from the node reference", function()
+      run_loclist(tree_with_reference(), "foo")
+
+      local items = vim.fn.getloclist(0)
+      assert.equals(4, #items)
+      assert.equals(1, items[1].lnum)
+      assert.equals(1, items[1].col)
+      assert.equals(12, items[2].lnum)
+      assert.equals(5, items[2].col)
+      assert.equals(1, items[3].lnum)
+      assert.equals(24, items[3].col)
+      assert.equals(1, items[4].lnum)
+      assert.equals(1, items[4].col)
+    end)
+
+    it("keeps the loclist text free of location information", function()
+      run_loclist(tree_with_reference(), "foo")
+
+      local items = vim.fn.getloclist(0)
+      assert.equals("├── src/a.ts", items[2].text)
+    end)
+
+    it("renders dimmed 'line N col N' virtual text only for entries with a reference", function()
+      run_loclist(tree_with_reference(), "foo")
+
+      local qfbufnr = vim.fn.getloclist(0, { qfbufnr = 0 }).qfbufnr
+      local ns = require("esmodtree.highlight").ns
+      local texts = {}
+      for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(qfbufnr, ns, 0, -1, { details = true })) do
+        local virt = mark[4].virt_text
+        if virt then
+          texts[mark[2]] = { text = virt[1][1], hl = virt[1][2] }
+        end
+      end
+
+      assert.is_nil(texts[0])
+      assert.equals("  line 12 col 5", texts[1].text)
+      assert.equals("EsmodtreeLocation", texts[1].hl)
+      assert.equals("  line 1 col 24", texts[2].text)
+      assert.is_nil(texts[3])
+    end)
+
+    it("shows the location text without a highlight group when use_colors is false", function()
+      require("esmodtree").setup({ use_colors = false })
+      run_loclist(tree_with_reference(), "foo")
+
+      local qfbufnr = vim.fn.getloclist(0, { qfbufnr = 0 }).qfbufnr
+      local ns = require("esmodtree.highlight").ns
+      local marks = vim.api.nvim_buf_get_extmarks(qfbufnr, ns, 0, -1, { details = true })
+      assert.equals(2, #marks)
+      assert.equals("  line 12 col 5", marks[1][4].virt_text[1][1])
+      assert.is_nil(marks[1][4].virt_text[1][2])
+    end)
+
+    it("renders a forest from --up output", function()
+      local forest = json({
+        node("src/a.ts", { node("src/target.ts") }, { reference = { line = 3, column = 7, kind = "usage" } }),
+        node("src/b.ts", { node("src/target.ts") }),
+      })
+      table.insert(cleanups, select(2, h.capture_notifications()))
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/target.ts"))
+      local _, restore_system = h.stub_system({ { code = 0, stdout = forest, stderr = "" } })
+      table.insert(cleanups, restore_system)
+      table.insert(cleanups, function()
+        pcall(vim.cmd, "lclose")
+      end)
+
+      runner.run("up", "foo", "loclist")
+      h.drain()
+
+      local items = vim.fn.getloclist(0)
+      assert.equals(4, #items)
+      assert.equals("src/a.ts", items[1].text)
+      assert.equals(3, items[1].lnum)
+      assert.equals(7, items[1].col)
+      assert.equals("└── src/target.ts", items[2].text)
+      assert.equals("src/b.ts", items[3].text)
+    end)
+
+    it("notifies an error and shows nothing when the CLI output is not JSON", function()
+      local notifications, restore_notify = h.capture_notifications()
+      table.insert(cleanups, restore_notify)
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/index.ts"))
+      local _, restore_system = h.stub_system({ { code = 0, stdout = "src/index.ts\n", stderr = "" } })
+      table.insert(cleanups, restore_system)
+
+      runner.run("down")
+      h.drain()
+
+      local last = notifications[#notifications]
+      assert.equals(vim.log.levels.ERROR, last.level)
+      assert.is_truthy(last.msg:find("parse"))
+      assert.is_nil(find_float_win())
+    end)
+
+    it("does not add location text to the float", function()
+      table.insert(cleanups, select(2, h.capture_notifications()))
+      table.insert(cleanups, stub_filereadable({ ["node_modules/.bin/esmodtree"] = 1 }))
+      table.insert(cleanups, stub_buf_name("/project/src/target.ts"))
+      local _, restore_system = h.stub_system({ { code = 0, stdout = tree_with_reference(), stderr = "" } })
+      table.insert(cleanups, restore_system)
+
+      runner.run("updown", "foo")
+      h.drain()
+
+      local win = find_float_win()
+      assert.is_not_nil(win)
+      local buf = vim.api.nvim_win_get_buf(win)
+      local ns = require("esmodtree.highlight").ns
+      for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, { details = true })) do
+        assert.is_nil(mark[4].virt_text)
+      end
     end)
   end)
 end)

@@ -40,7 +40,9 @@ function insertPath(siblings: TreeNode[], path: TreeNode[]) {
   if (path.length === 0) return
 
   const [head, ...tail] = path
-  const existing = siblings.find(s => s.path === head.path)
+  // Nodes only merge when they reference their next hop at the same location;
+  // otherwise one node could not point at both locations.
+  const existing = siblings.find(s => s.path === head.path && sameReference(s, head))
 
   if (existing) {
     // Merge into existing node — continue down the tail
@@ -50,6 +52,15 @@ function insertPath(siblings: TreeNode[], path: TreeNode[]) {
     const node = buildChain(path)
     siblings.push(node)
   }
+}
+
+function sameReference(a: TreeNode, b: TreeNode): boolean {
+  if (!a.reference || !b.reference) return a.reference === b.reference
+  return (
+    a.reference.line === b.reference.line &&
+    a.reference.column === b.reference.column &&
+    a.reference.kind === b.reference.kind
+  )
 }
 
 /** Builds a linear chain of TreeNodes from a path segment. */
@@ -63,6 +74,7 @@ function buildChain(path: TreeNode[]): TreeNode {
     path: head.path,
     circular: head.circular,
     markers: [...head.markers],
+    ...(head.reference && { reference: { ...head.reference } }),
     children: [buildChain(tail)],
   }
 }
@@ -72,6 +84,7 @@ function cloneLeaf(node: TreeNode): TreeNode {
     path: node.path,
     circular: node.circular,
     markers: [...node.markers],
+    ...(node.reference && { reference: { ...node.reference } }),
     children: [],
   }
 }

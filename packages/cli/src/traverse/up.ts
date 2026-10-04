@@ -1,4 +1,19 @@
-import type { DependencyMetadata, ModuleMarker, TreeNode } from '~/graph/types'
+import type { DependencyMetadata, ModuleMarker, SymbolReference, TreeNode } from '~/graph/types'
+
+export type SymbolTracking = {
+  /** Names under which the start file exposes the tracked symbol. */
+  names: string[]
+  /**
+   * Called for every importer → imported edge. Returns where the importer
+   * references the imported module, plus the names under which the importer
+   * re-exports the symbol (used to keep tracking one hop further up).
+   */
+  analyze: (
+    importerPath: string,
+    importedPath: string,
+    names: string[],
+  ) => { reference: SymbolReference; exposedAs: string[] } | undefined
+}
 
 export type TraverseOptions = {
   markers?: Map<string, ModuleMarker[]>
@@ -11,6 +26,8 @@ export type TraverseOptions = {
    * importers that actually import a specific named export.
    */
   importsSymbol?: (importerPath: string) => boolean
+  /** When set, annotates each importer node with its `reference` location. */
+  symbolTracking?: SymbolTracking
 }
 
 /**
@@ -30,10 +47,16 @@ export function traverseUp(
     depth: maxDepth,
     exclude,
     importsSymbol,
+    symbolTracking,
   } = options
   const visited = new Set<string>()
 
-  function walk(file: string, edgeMarkers: ModuleMarker[], currentDepth: number): TreeNode {
+  function walk(
+    file: string,
+    edgeMarkers: ModuleMarker[],
+    currentDepth: number,
+    names: string[],
+  ): TreeNode {
     if (visited.has(file)) {
       return { path: file, circular: true, markers: edgeMarkers, children: [] }
     }
@@ -56,7 +79,10 @@ export function traverseUp(
       if (dependencyMetadata.get(imp)?.get(file)?.dynamic) {
         depEdgeMarkers.push('dynamic')
       }
-      return walk(imp, depEdgeMarkers, currentDepth + 1)
+      const link = symbolTracking?.analyze(imp, file, names)
+      const child = walk(imp, depEdgeMarkers, currentDepth + 1, link?.exposedAs ?? [])
+      if (link) child.reference = link.reference
+      return child
     })
     visited.delete(file)
 
@@ -64,5 +90,5 @@ export function traverseUp(
     return { path: file, circular: false, markers: nodeMarkers, children }
   }
 
-  return walk(startFile, [], 0)
+  return walk(startFile, [], 0, symbolTracking?.names ?? [])
 }

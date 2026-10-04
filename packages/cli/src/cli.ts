@@ -13,9 +13,10 @@ import { VERSION } from '~/index'
 import { formatJson } from '~/output/json'
 import { formatTree } from '~/output/tree'
 import { loadCompilerOptions } from '~/parse/compiler-options'
-import { fileImportsSymbol, getExportedSymbols } from '~/parse/symbols'
+import { analyzeSymbolLink, fileImportsSymbol, getExportedSymbols } from '~/parse/symbols'
 import { traverseDown } from '~/traverse/down'
 import { reverseTree } from '~/traverse/reverse'
+import type { SymbolTracking } from '~/traverse/up'
 import { traverseUp } from '~/traverse/up'
 
 /**
@@ -159,6 +160,7 @@ export function createProgram(): Command {
 
         // Validate --symbol: check the target file actually exports it
         let importsSymbolFilter: ((importerPath: string) => boolean) | undefined
+        let symbolTracking: SymbolTracking | undefined
         if (symbolName) {
           const exported = getExportedSymbols(absTarget)
           if (!exported.includes(symbolName)) {
@@ -171,6 +173,16 @@ export function createProgram(): Command {
           importsSymbolFilter = (importerRelPath: string) => {
             const importerAbsPath = resolve(projectRoot, importerRelPath)
             return fileImportsSymbol(importerAbsPath, absTarget, symbolName, compilerOptions)
+          }
+          symbolTracking = {
+            names: [symbolName],
+            analyze: (importerRelPath, importedRelPath, names) =>
+              analyzeSymbolLink(
+                resolve(projectRoot, importerRelPath),
+                resolve(projectRoot, importedRelPath),
+                names,
+                compilerOptions,
+              ),
           }
 
           if (debug) {
@@ -191,6 +203,7 @@ export function createProgram(): Command {
           depth: depthLimit,
           exclude,
           importsSymbol: importsSymbolFilter,
+          symbolTracking,
         })
 
         if (up) {

@@ -127,4 +127,46 @@ describe('traverseUp', () => {
     expect(tree.children[0].path).toBe('a.ts')
     expect(tree.children[0].children).toHaveLength(2)
   })
+  it('annotates importers with references and propagates exposed names one hop up', () => {
+    const reverse = new Map([
+      ['target.ts', ['barrel.ts']],
+      ['barrel.ts', ['app.ts']],
+      ['app.ts', []],
+    ])
+    const calls: [string, string, string[]][] = []
+
+    const tree = traverseUp('target.ts', reverse, {
+      symbolTracking: {
+        names: ['Foo'],
+        analyze: (importer, imported, names) => {
+          calls.push([importer, imported, names])
+          return importer === 'barrel.ts'
+            ? {
+                reference: { line: 1, column: 10, kind: 'import' },
+                exposedAs: ['Bar'],
+              }
+            : { reference: { line: 4, column: 2, kind: 'usage' }, exposedAs: [] }
+        },
+      },
+    })
+
+    expect(calls).toEqual([
+      ['barrel.ts', 'target.ts', ['Foo']],
+      ['app.ts', 'barrel.ts', ['Bar']],
+    ])
+    expect(tree.reference).toBeUndefined()
+    expect(tree.children[0].reference).toEqual({ line: 1, column: 10, kind: 'import' })
+    expect(tree.children[0].children[0].reference).toEqual({ line: 4, column: 2, kind: 'usage' })
+  })
+
+  it('omits references when symbol tracking is not enabled', () => {
+    const reverse = new Map([
+      ['target.ts', ['a.ts']],
+      ['a.ts', []],
+    ])
+
+    const tree = traverseUp('target.ts', reverse)
+
+    expect(tree.children[0]).not.toHaveProperty('reference')
+  })
 })

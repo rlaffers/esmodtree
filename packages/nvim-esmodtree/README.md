@@ -111,6 +111,15 @@ The location list preserves the tree-drawing characters in the display text
 and lets you jump to any file by pressing `<CR>` on its entry. Use `:lopen`,
 `:lnext`, `:lprev` and friends to navigate.
 
+When the tree is filtered by a symbol, each entry also tracks where that file
+uses the symbol: pressing `<CR>` jumps to the exact line and column, which is
+shown dimmed at the end of the entry as `line 12 col 5`. This is the first
+usage after the import statement; type-only positions (`import type`,
+`typeof X` in a type, `implements X`) are skipped. When there is no such usage
+(an unused import, a re-export like `export { X } from`), the location of the
+import or export specifier is used. Entries further up the tree point at where
+each file references the module below it.
+
 ### Filtering by symbol
 
 When a file exports multiple symbols, you can filter the importer tree to only
@@ -175,6 +184,7 @@ own `:highlight` overrides win:
 | `EsmodtreeMarkerBarrel`   | `DiagnosticHint`  | `[barrel]` marker               |
 | `EsmodtreeMarkerDynamic`  | `DiagnosticWarn`  | `[dynamic]` marker              |
 | `EsmodtreeMarkerCircular` | `DiagnosticError` | `[circular]` marker             |
+| `EsmodtreeLocation`       | `Comment`         | `line N col N` in the loclist   |
 
 Example override:
 

@@ -1,5 +1,6 @@
 local util = require("esmodtree.util")
 local highlight = require("esmodtree.highlight")
+local tree = require("esmodtree.tree")
 
 local M = {}
 
@@ -153,7 +154,7 @@ local function open_float(lines, title)
   vim.wo[win].foldcolumn = "1"
   vim.wo[win].foldlevel = fold_level
   -- vim.wo[win].fillchars = "fold: ,foldinner: ,foldsep:│"
-  vim.wo[win].fillchars = "fold: ,foldinner: ,foldsep: "
+  vim.wo[win].fillchars = "fold: ,foldinner: ,foldsep: ,foldclose:⊕,foldopen:⊖"
   if config.fold_level then
     -- Force fold recomputation so folds above fold_level close immediately.
     vim.api.nvim_win_call(win, function()
@@ -172,23 +173,6 @@ local function open_float(lines, title)
   vim.keymap.set("n", "<Esc>", close, { buffer = buf, nowait = true })
   vim.keymap.set("n", "=", "za", { buffer = buf, nowait = true })
 end
-
---- Extract a file path from a tree output line by stripping leading
---- box-drawing characters (U+2500 ─, U+2502 │, U+251C ├, U+2514 └,
---- U+2550 ═) and whitespace, then returning the first non-space token.
---- Returns "" when no path can be extracted.
---- @param line string
---- @return string
-local function extract_path(line)
-  -- Box-drawing chars used by the CLI are 3-byte UTF-8 sequences in the
-  -- range \xe2\x94\x80 – \xe2\x95\x90. Strip those bytes plus ASCII spaces.
-  local stripped = line:gsub("[\xe2][\x94\x95][\x80-\xbf]", ""):gsub("^ +", "")
-  local token = stripped:match("(%S+)")
-  return token or ""
-end
-
--- Expose for testing
-M._extract_path = extract_path
 
 --- Render loclist entries as the raw tree text only, hiding the default
 --- "filename|lnum col col| text" prefix so tree-drawing characters align.
@@ -233,7 +217,7 @@ local function ensure_loclist_highlighter()
       end
 
       local win = vim.api.nvim_get_current_win()
-      local info = vim.fn.getloclist(win, { title = 1 })
+      local info = vim.fn.getloclist(win, { title = 1, items = 1 })
       -- Clear any stale marks from a prior Esmodtree list
       vim.api.nvim_buf_clear_namespace(buf, highlight.ns, 0, -1)
 
@@ -251,13 +235,19 @@ local function ensure_loclist_highlighter()
       vim.bo[buf].syntax = "off"
 
       local config = require("esmodtree").config or {}
-      if config.use_colors == false then
-        return
+      local use_colors = config.use_colors ~= false
+      if use_colors then
+        highlight.define_groups()
+        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        highlight.highlight_buffer(buf, lines)
       end
 
-      highlight.define_groups()
-      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-      highlight.highlight_buffer(buf, lines)
+      for i, item in ipairs(info.items or {}) do
+        local reference = type(item.user_data) == "table" and item.user_data.reference or nil
+        if reference then
+          highlight.add_location(buf, i - 1, reference, use_colors)
+        end
+      end
     end,
   })
 end
@@ -265,20 +255,24 @@ end
 -- Expose for testing
 M._ensure_loclist_highlighter = ensure_loclist_highlighter
 
---- Open a location list populated with the given tree output lines.
---- Each entry preserves the original line as display text. Selecting an
---- entry jumps to the extracted file at line 1, column 1.
+--- Open a location list populated with the rendered tree.
+--- `lines[i]` is the display text of `nodes[i]`. Selecting an entry jumps to
+--- the node's file at its `reference` location, or line 1, column 1 when the
+--- node has none.
 --- @param lines string[]
+--- @param nodes esmodtree.TreeNode[]
 --- @param title string
-local function open_loclist(lines, title)
+local function open_loclist(lines, nodes, title)
   local items = {}
-  for _, line in ipairs(lines) do
-    local path = extract_path(line)
+  for i, line in ipairs(lines) do
+    local node = nodes[i]
+    local reference = node.reference
     table.insert(items, {
-      filename = path,
-      lnum = 1,
-      col = 1,
+      filename = node.path,
+      lnum = reference and reference.line or 1,
+      col = reference and reference.column or 1,
       text = line,
+      user_data = reference and { reference = reference } or nil,
     })
   end
 
@@ -293,6 +287,8 @@ local function open_loclist(lines, title)
 end
 
 --- Run the CLI with the given subcommand for the current buffer.
+--- The CLI is always invoked with `--json`; its tree is rendered by
+--- `esmodtree.tree` and shown in the chosen display.
 --- When `symbol` is provided, appends `--symbol <name>` to the CLI command.
 --- `display` is "float" (default) or "loclist".
 --- @param subcmd string
@@ -317,7 +313,7 @@ function M.run(subcmd, symbol, display)
   end
 
   -- Build command
-  local cmd = { bin, "--" .. subcmd, filepath, "--no-color" }
+  local cmd = { bin, "--" .. subcmd, filepath, "--json" }
   if symbol then
     table.insert(cmd, "--symbol")
     table.insert(cmd, symbol)
@@ -334,7 +330,14 @@ function M.run(subcmd, symbol, display)
   vim.system(cmd, {}, function(result)
     vim.schedule(function()
       if result.code ~= 0 then
-        vim.notify("Esmodtree: " .. (result.stderr or "unknown error"), vim.log.levels.ERROR, { replace = notify_id })
+        local err = result.stderr or ""
+        if err == "" then
+          err = result.stdout or ""
+        end
+        if err == "" then
+          err = "unknown error"
+        end
+        vim.notify("Esmodtree: " .. err, vim.log.levels.ERROR, { replace = notify_id })
         return
       end
 
@@ -344,14 +347,24 @@ function M.run(subcmd, symbol, display)
         return
       end
 
-      -- Split into lines, removing trailing empty line from final newline
-      local lines = vim.split(stdout, "\n", { plain = true })
-      if lines[#lines] == "" then
-        table.remove(lines)
+      local ok, decoded = pcall(vim.json.decode, stdout)
+      if not ok or type(decoded) ~= "table" then
+        vim.notify(
+          "Esmodtree: could not parse CLI output: " .. stdout:sub(1, 200),
+          vim.log.levels.ERROR,
+          { replace = notify_id }
+        )
+        return
+      end
+
+      local lines, nodes = tree.render(decoded)
+      if #lines == 0 then
+        vim.notify("Esmodtree: no output", vim.log.levels.WARN, { replace = notify_id })
+        return
       end
 
       if display == "loclist" then
-        open_loclist(lines, title_for(subcmd, symbol))
+        open_loclist(lines, nodes, title_for(subcmd, symbol))
       else
         open_float(lines, title_for(subcmd, symbol))
       end

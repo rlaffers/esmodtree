@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
-import { fileImportsSymbol, getExportedSymbols } from '../symbols'
+import { analyzeSymbolLink, fileImportsSymbol, getExportedSymbols } from '../symbols'
 
 const fixturesDir = resolve(import.meta.dirname, 'fixtures')
 const fixture = (name: string) => resolve(fixturesDir, name)
@@ -174,5 +174,91 @@ describe('fileImportsSymbol', () => {
   it('returns false when named re-exports do not include the symbol', () => {
     const result = fileImportsSymbol(fixture('re-exports.ts'), target, 'myLet', compilerOptions)
     expect(result).toBe(false)
+  })
+})
+
+describe('analyzeSymbolLink', () => {
+  const target = fixture('exports.ts')
+  const analyze = (file: string, names: string[] = ['MyFunction']) =>
+    analyzeSymbolLink(fixture(file), target, names, compilerOptions)
+
+  it('returns undefined when the file does not import the target at all', () => {
+    expect(analyze('imports-none.ts')).toBeUndefined()
+  })
+
+  it('locates the first usage after a named import', () => {
+    expect(analyze('imports-named.ts')?.reference).toEqual({ line: 3, column: 13, kind: 'usage' })
+  })
+
+  it('locates the usage of the alias for aliased imports', () => {
+    expect(analyze('imports-aliased.ts')?.reference).toEqual({ line: 3, column: 13, kind: 'usage' })
+  })
+
+  it('locates NS.symbol for namespace imports', () => {
+    expect(analyze('imports-namespace.ts')?.reference).toEqual({
+      line: 3,
+      column: 13,
+      kind: 'usage',
+    })
+  })
+
+  it('skips type-only positions and finds the first value usage', () => {
+    const link = analyze('ref-type-then-value.ts', ['MyClass'])
+    expect(link?.reference).toEqual({ line: 9, column: 26, kind: 'usage' })
+  })
+
+  it('treats `class extends` as a value usage', () => {
+    expect(analyze('ref-extends.ts', ['MyClass'])?.reference).toEqual({
+      line: 3,
+      column: 17,
+      kind: 'usage',
+    })
+  })
+
+  it('ignores property keys and member names', () => {
+    expect(analyze('ref-property-key.ts')?.reference).toEqual({ line: 5, column: 1, kind: 'usage' })
+  })
+
+  it('falls back to the import specifier when only type-only usage exists', () => {
+    const link = analyze('ref-type-only.ts')
+    expect(link?.matched).toBe(true)
+    expect(link?.reference).toEqual({ line: 1, column: 15, kind: 'import' })
+  })
+
+  it('falls back to the import specifier when the import is unused', () => {
+    expect(analyze('ref-unused.ts')?.reference).toEqual({ line: 1, column: 10, kind: 'import' })
+  })
+
+  it('reports columns as UTF-8 byte offsets', () => {
+    expect(analyze('ref-multibyte.ts')?.reference).toEqual({ line: 3, column: 30, kind: 'usage' })
+  })
+
+  it('reports local re-exports of an import in exposedAs', () => {
+    const link = analyze('ref-local-reexport.ts')
+    expect(link?.reference).toEqual({ line: 3, column: 10, kind: 'usage' })
+    expect(link?.exposedAs).toEqual(['Renamed'])
+  })
+
+  it('points at the export specifier for aliased re-exports and exposes the alias', () => {
+    const link = analyze('reexports-aliased.ts')
+    expect(link?.reference).toEqual({ line: 1, column: 24, kind: 'import' })
+    expect(link?.exposedAs).toEqual(['fn'])
+  })
+
+  it('exposes the same names for `export *`', () => {
+    const link = analyze('reexports-star.ts')
+    expect(link?.reference).toEqual({ line: 1, column: 1, kind: 'import' })
+    expect(link?.exposedAs).toEqual(['MyFunction'])
+  })
+
+  it('exposes the namespace name for `export * as NS`', () => {
+    expect(analyze('reexports-namespace.ts')?.exposedAs).toEqual(['Exp'])
+  })
+
+  it('falls back to the import statement when no tracked names are given', () => {
+    const link = analyze('imports-named.ts', [])
+    expect(link?.matched).toBe(false)
+    expect(link?.reference.kind).toBe('import')
+    expect(link?.exposedAs).toEqual([])
   })
 })
